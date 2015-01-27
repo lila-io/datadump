@@ -1,0 +1,89 @@
+<!doctype html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>datadump</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+
+    <script src="/scripts/easyXDM.debug.js"></script>
+
+    <script>
+        var APP_URL = document.location.protocol + '//' + document.location.host;
+        var win, remoteapp; // reference to the popups window
+        var PROVIDERS = {
+            twitter: {name:'twitter',link: APP_URL + '<%= oauthTwitter %>'},
+            github: {name:'github',link: APP_URL + '<%= oauthGitHub %>'},
+            facebook: {name:'facebook',link: APP_URL + '<%= oauthFacebook %>'},
+            google: {name:'google',link: APP_URL + '<%= oauthGoogle %>'}
+        };
+        var proxy = new easyXDM.Rpc({}, {
+            local : {
+                getAvailableProviders : function (successFn, errorFn) {
+                    var providers = [];
+                    <% if(oauthTwitter){ %>
+                        providers.push(PROVIDERS.twitter)
+                    <% } %>
+                    <% if(oauthGitHub){ %>
+                        providers.push(PROVIDERS.github)
+                    <% } %>
+                    <% if(oauthFacebook){ %>
+                        providers.push(PROVIDERS.facebook)
+                    <% } %>
+                    <% if(oauthGoogle){ %>
+                        providers.push(PROVIDERS.google)
+                    <% } %>
+
+                    successFn(providers);
+                },
+                formLoginPath : function(successFn, errorFn){
+                    var loginUrl = '';
+                    <% if(formLogin){ %>
+                        loginUrl = APP_URL + '<%= formLogin %>';
+                    <% } %>
+                    successFn(loginUrl);
+                },
+                open: function(providerName, existingPopupName) {
+                    remoteapp = null;
+                    var target = "easyXDM_" + easyXDM.query.xdm_c + "_provider";
+                    var popupUrl = PROVIDERS[providerName].link + "?target=" + target;
+                    win = window.open( popupUrl, existingPopupName);
+                    win.moveTo(0,0);
+                    win.focus();
+                }
+            },
+            remote : {
+                postMessage: {}
+            }
+        });
+
+        function setApp(app) {
+            remoteapp = app;
+        }
+        function sendData(data) {
+            proxy.postMessage(data);
+        }
+    </script>
+</head>
+<body>
+
+<h1>Login options</h1>
+
+<ul>
+    <% if(oauthTwitter){ %>
+    <li><a href="<%= oauthTwitter %>">Twitter login</a></li>
+    <% } %>
+    <% if(oauthGitHub){ %>
+    <li><a href="<%= oauthGitHub %>">Github login</a></li>
+    <% } %>
+    <% if(oauthFacebook){ %>
+    <li><a href="<%= oauthFacebook %>">Facebook login</a></li>
+    <% } %>
+    <% if(oauthGoogle){ %>
+    <li><a href="<%= oauthGoogle %>">Google login</a></li>
+    <% } %>
+</ul>
+
+</body>
+</html>

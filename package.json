@@ -1,0 +1,65 @@
+{
+  "name": "datadump",
+  "version": "1.0.0",
+  "private": true,
+
+  "engines": {
+    "node": ">=1.0",
+    "npm": "1.2.x"
+  },
+
+  "scripts": {
+
+    "start": "node server.js",
+
+    "lint": "./node_modules/.bin/jshint server.js server/*",
+    "pretest": "rm -rf coverage && npm run-script lint",
+    "test": "./node_modules/.bin/istanbul -v -x=server.js -x=client/** -x=server/conf/** --preload-sources cover ./node_modules/.bin/_mocha -- --recursive -R spec -r should",
+    "posttest": "./node_modules/.bin/istanbul check-coverage"
+  },
+
+  "dependencies": {
+    "express": "4.x",
+    "express-session": "*",
+    "connect-mongo": "*",
+    "serve-favicon": "*",
+    "cookie-parser": "*",
+    "body-parser": "*",
+    "compression": "*",
+    "csurf": "*",
+    "method-override": "*",
+    "morgan": "*",
+    "serve-static": "*",
+    "ejs": "*",
+    "aws-sdk": "~2.*",
+    "superagent": "*",
+    "google-oauth-jwt": "0.1",
+    "mongoose": "~3.*",
+    "passport": "*",
+    "passport-local": "*",
+    "passport-http-bearer": "*",
+    "passport-oauth": "*",
+    "passport-facebook": "*",
+    "passport-github": "*",
+    "passport-twitter": "*",
+    "passport-google-oauth": "*",
+    "bcrypt": "*",
+    "jsonwebtoken": "*",
+    "async": "*",
+    "underscore": "*",
+    "q": "~1.0.1",
+    "URIjs": "~1.*",
+    "mongoose-text-search": "0.0.2"
+  },
+
+  "devDependencies": {
+    "jshint": "*",
+    "jscs": "*",
+    "istanbul": "*",
+    "mocha": "*",
+    "should": "*",
+    "rewire": "*",
+    "supertest": "*",
+    "sinon": "*"
+  }
+}
