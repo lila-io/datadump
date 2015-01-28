@@ -5,12 +5,14 @@
 
 'use strict';
 
-var mongoose = require('mongoose'),
+var
+  mongoose = require('mongoose'),
 	conf = require('../conf/config'),
-	roleCompareService = require('./RoleCompareService');
+	roleCompareService = require('./RoleCompareService')
+  ;
 
 function Authentication(){
-  this.anonymousAuthenticationRoles = ['permitAll','IS_AUTHENTICATED_ANONYMOUSLY']
+  this.anonymousAuthenticationRoles = ['permitAll','IS_AUTHENTICATED_ANONYMOUSLY'];
 }
 
 Authentication.prototype.require = function(ROLE){
@@ -33,7 +35,7 @@ Authentication.prototype.require = function(ROLE){
     }
 
     function requireAnonymous(){
-      return self.anonymousAuthenticationRoles.indexOf(ROLE) > -1
+      return self.anonymousAuthenticationRoles.indexOf(ROLE) > -1;
     }
 
 		function pushRoles(roleArr){
