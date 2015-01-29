@@ -25,13 +25,13 @@ exports.init = function (ctx) {
 
   switch (environment) {
     case 'test':
-      dbConfig.dbUri = 'mongodb://localhost/test_db'
+      dbConfig.dbUri = 'mongodb://localhost/test_db';
       break;
     case 'production':
-      dbConfig.dbUri = 'mongodb://localhost/prod_db'
+      dbConfig.dbUri = 'mongodb://localhost/prod_db';
       break;
     default:
-      dbConfig.dbUri = 'mongodb://localhost/dev_db'
+      dbConfig.dbUri = 'mongodb://localhost/dev_db';
   }
 
   console.log('Starting db connection to : ', dbConfig.dbUri);

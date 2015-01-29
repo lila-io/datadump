@@ -76,7 +76,9 @@ exports.init = function (app) {
 
   passport.use(new BearerStrategy(
     function (token, done) {
+
       UserToken.findOne({token: token}, function (err, tokenInstance) {
+
         if (err) {
           return done(err);
         }

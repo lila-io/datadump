@@ -20,7 +20,6 @@ exports.generateToken = function(userId, cb){
   var data = {userId:userId}
   var valueToSign = userId + '___' + Date.now();
   data.token = JWT.sign(valueToSign, config.auth.token.secret);
-
   UserToken.create( data, function(err, tokenEntity){
     if(err) {
       throw err;
