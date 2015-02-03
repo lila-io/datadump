@@ -27,11 +27,11 @@ function loginUserAndGenerateToken(user, req, res, next) {
 //////////////////////////////
 
 router.get(config.routes.auth.blank, function (req, res) {
-  res.render('blank')
+  res.render('blank');
 });
 
 router.get(config.routes.auth.name, function (req, res) {
-  res.render('name')
+  res.render('name');
 });
 
 

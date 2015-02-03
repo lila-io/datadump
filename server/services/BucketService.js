@@ -8,9 +8,14 @@ var
 ;
 
 exports.findOne = function(itemId, ownerId, cb){
+
+  if(itemId == null || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: itemId, ownerId, callback: ' + Array.prototype.slice.call(arguments));
+  }
+
   var query = {_id:itemId};
   if(ownerId != null){
-    query.userId = ownerId
+    query.user = ownerId;
   }
   mongoose.model(MODELNAME).findOne(query, function(err,item){
 		if(err != null){
@@ -35,29 +40,18 @@ exports.createOne = function(properties, cb){
     data: []
 	};
 
-  if(!_.isObject(properties || 'function' !== typeof cb)){
+  if(!_.isObject(properties) || !_.isFunction(cb)){
     throw new Error('Illegal arguments, must be: object, callback: ' + Array.prototype.slice.call(arguments));
   }
 
 	_.extend(props, defaults, properties);
 
-  // TODO: fix as it is a bug
-
-  var Item = mongoose.model(MODELNAME, props);
-
-  Item.schema.validate(function(err){
+  mongoose.model(MODELNAME).create(props,function(err,item){
     if(err != null){
       return cb(err);
     }
-
-    Item.save(function(errr,item){
-      if(errr != null){
-        return cb(errr);
-      }
-      cb(null,item);
-    });
+    cb(null,item);
   });
-
 };
 
 exports.updateOne = function(id, properties, cb){
