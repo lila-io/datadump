@@ -61,7 +61,7 @@ describe('Bucket schema integration tests', function () {
       },function(err){
         err.errors.should.be.an.Object;
         Object.keys(err.errors).length.should.equal(5);
-        Object.keys(err.errors).should.containDeep(['isPublic', 'path', 'description', 'user', 'dateCreated'])
+        Object.keys(err.errors).should.containDeep(['isPublic', 'path', 'description', 'user', 'dateCreated']);
         done();
       });
     });

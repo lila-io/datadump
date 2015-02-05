@@ -4,30 +4,39 @@ var
 	mongoose = require('mongoose'),
 	_ = require('underscore'),
 	async = require('async'),
-	MODELNAME = 'Bucket'
+	MODELNAME = 'Bucket',
+  ValidatorError = mongoose.Error.ValidatorError,
+  ValidationError = mongoose.Error.ValidationError
 ;
 
 exports.findOne = function(itemId, ownerId, cb){
 
-  if(itemId == null || !_.isFunction(cb)){
-    throw new Error('Illegal arguments, must be: itemId, ownerId, callback: ' + Array.prototype.slice.call(arguments));
+  var
+    args = Array.prototype.slice.call(arguments),
+    query
+    ;
+
+  if(args.length === 2) {
+    cb = args[1];
+    ownerId = null;
   }
 
-  var query = {_id:itemId};
-  if(ownerId != null){
-    query.user = ownerId;
+  if(itemId == null || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: itemId, ownerId, callback: ' + args);
   }
-  mongoose.model(MODELNAME).findOne(query, function(err,item){
-		if(err != null){
-			return cb(err);
-		}
-    mongoose.model(MODELNAME).populate(item, {path:'data'}, function(errr, preparedItem){
-			if(errr != null){
-				return cb(errr);
-			}
-			cb(null,preparedItem);
-		});
-	});
+
+  if(ownerId == null){
+    query = mongoose.model(MODELNAME).findById(itemId);
+  } else {
+    query = mongoose.model(MODELNAME).findOne({_id:itemId, user:ownerId});
+  }
+
+  query.exec(function(err,item){
+    if(err != null){
+      return cb(err);
+    }
+    cb(null,item);
+  });
 };
 
 exports.createOne = function(properties, cb){
@@ -48,109 +57,130 @@ exports.createOne = function(properties, cb){
 
   mongoose.model(MODELNAME).create(props,function(err,item){
     if(err != null){
+      if(err.name === 'MongoError' && err.code === 11000){
+        var newErr = new ValidationError(err);
+        newErr.errors.path = new ValidatorError('path', 'Bucket path should be unique', 'user defined', props.path);
+        return cb(newErr);
+      }
       return cb(err);
     }
     cb(null,item);
   });
 };
 
-exports.updateOne = function(id, properties, cb){
+exports.updateOne = function(id, ownerId, properties, cb){
 
-	if(id == null || !_.isObject(properties) || 'function' !== typeof cb){
-		throw new Error('Illegal arguments, must be: id, object, callback: ' + Array.prototype.slice.call(arguments));
+  var
+    args = Array.prototype.slice.call(arguments)
+    ;
+
+  if(args.length === 3) {
+    cb = args[2];
+    properties = args[1];
+    ownerId = null;
+  }
+
+	if(id == null || !_.isObject(properties) || !_.isFunction(cb)){
+		throw new Error('Illegal arguments, must be: id, ownerId[optional], object, callback: ' + args);
 	}
 
-  mongoose.model(MODELNAME).findOneAndUpdate({_id:id}, properties, function(err,item){
-		if(err != null){
-			return cb(err);
-		}
-		cb(null,item);
-	});
-
+  exports.findOne(id, ownerId, function(err,item){
+    if(err != null){
+      return cb(err);
+    }
+    if(item == null){
+      return cb(new Error('Document not found'));
+    }
+    item.set(properties);
+    item.save(function(err,item){
+      if(err != null){
+        return cb(err);
+      }
+      cb(null,item);
+    });
+  });
 };
 
 exports.deleteOne = function(id, ownerId, cb){
 
-  var args = Array.prototype.slice.call(arguments);
+  var
+    args = Array.prototype.slice.call(arguments),
+    query
+    ;
+
   if(args.length === 2) {
     cb = args[1];
     ownerId = null;
   }
 
-  if(id == null || 'function' !== typeof cb){
-    throw new Error('Illegal arguments, must be: id, (optional)ownerId, callback: ' + Array.prototype.slice.call(arguments));
+  if(id == null || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: id, (optional)ownerId, callback: ' + args);
   }
 
-  function callback(err,deletedItem){
+  if(ownerId == null){
+    query = mongoose.model(MODELNAME).findByIdAndRemove(id);
+  } else {
+    query = mongoose.model(MODELNAME).findOneAndRemove({_id:id, user:ownerId});
+  }
+
+  query.exec(function (err,deletedItem){
     if(err != null){
       return cb(err);
     }
     cb(null,deletedItem);
-  }
-
-  if(!ownerId){
-    mongoose.model(MODELNAME).findOneAndRemove({_id:id}, callback);
-  } else {
-    mongoose.model(MODELNAME).findOneAndRemove({_id:id, user:ownerId}, callback);
-  }
-
+  });
 };
 
-exports.list = function(search, options, cb){
-	findItems(search, options, cb);
-};
+exports.list = function(searchQuery, options, cb){
 
+  /* jshint maxcomplexity:10 */
 
-function findItems(searchQuery, options, cb){
+  var
+    args = Array.prototype.slice.call(arguments),
+    projection = null,
+    sortOption = {},
+    positionalParams
+    ;
 
-	var
-		projection = null,
-		sortOption = {},
-		positionalParams
-	;
+  if(args.length === 2) {
+    cb = args[1];
+    options = null;
+  }
 
-	options = options || {};
-	sortOption[options.sort] = options.order === 'asc' ? 1 : -1;
-	positionalParams = { skip: options.offset || 0, limit:options.max || 10, sort: sortOption };
+  if(!_.isObject(searchQuery) || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: searchQuery, options[optional], callback: ' + args);
+  }
 
-	if('function' !== typeof cb){
-		throw new Error('Illegal arguments, must be: searchQuery, options, callback: ' + Array.prototype.slice.call(arguments));
-	}
+  options = options || {};
+  options.sort = options.sort || 'dateCreated';
+  sortOption[options.sort] = options.order === 'asc' ? 1 : -1;
+  positionalParams = { skip: options.offset || 0, limit:options.max || 10, sort: sortOption };
 
-	var getItems = function(done) {
-
+  var getItems = function(done) {
     mongoose.model(MODELNAME).find(searchQuery, projection, positionalParams, function(err,results){
-			if(err != null){
-				return done(err);
-			}
+      if(err != null){
+        return done(err);
+      }
+      done(null,results);
+    });
+  };
 
-      mongoose.model(MODELNAME).populate(results, {path:'data'}, function(errr, items){
-				if(errr != null){
-					return done(errr);
-				}
-				done(null,items);
-			});
-
-		});
-	};
-
-	var getCount = function(done) {
+  var getCount = function(done) {
     mongoose.model(MODELNAME).count(searchQuery, function(err,result){
-			if(err != null){
-				return done(err);
-			}
-			done(null,result);
-		});
-	};
+      if(err != null){
+        return done(err);
+      }
+      done(null,result);
+    });
+  };
 
-	var asyncFinally = function(err, results) {
-		if (err) {
-			return cb(err);
-		}
+  var asyncFinally = function(err, results) {
+    if (err) {
+      return cb(err);
+    }
+    cb(null,results.items,results.total);
+  };
 
-		cb(null,results.items,results.total);
-	};
+  async.parallel({ items: getItems, total: getCount }, asyncFinally);
 
-	async.parallel({ items: getItems, total: getCount }, asyncFinally);
-
-}
+};

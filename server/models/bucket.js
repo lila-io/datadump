@@ -17,8 +17,7 @@ BucketSchema = new mongoose.Schema({
   description: { type: String, required: true, set:setNullIfBlank },
   path: { type: String, required: true, set:setNullIfBlank },
   dateCreated: { type: Date, default: Date.now, required:true, set:setNullIfBlank },
-  isPublic: { type: Boolean, required: true, default: false, set:setNullIfBlank },
-  data: { type: Array, default: [] }
+  isPublic: { type: Boolean, required: true, default: false, set:setNullIfBlank }
 },{ autoIndex: false, collection: config.db.prefix + 'bucket' });
 
 BucketSchema.index({ user: 1, path: 1 }, { unique: true });
