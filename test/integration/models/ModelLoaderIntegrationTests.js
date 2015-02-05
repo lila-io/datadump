@@ -26,8 +26,8 @@ describe('Schema loader integration tests', function () {
     it('initializes all models', function (done) {
       initializer.init();
       var models = mongoose.modelNames();
-      models.length.should.eql(6);
-      models.should.containDeep(['LoginAttempt', 'Role', 'User', 'UserToken', 'Bucket', 'BucketItem']);
+      models.length.should.eql(7);
+      models.should.containDeep(['LoginAttempt', 'Role', 'User', 'UserToken', 'Bucket', 'BucketItem', 'BucketToken']);
       done();
     });
 

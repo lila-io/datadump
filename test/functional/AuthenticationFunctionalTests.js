@@ -229,7 +229,6 @@ describe('Authentication functional tests', function () {
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
             should.not.exist(err);
-            console.log('Token used: ', token);
             res.status.should.eql(200);
             deferred.resolve();
           });

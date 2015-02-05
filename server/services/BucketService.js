@@ -139,7 +139,8 @@ exports.list = function(searchQuery, options, cb){
     args = Array.prototype.slice.call(arguments),
     projection = null,
     sortOption = {},
-    positionalParams
+    positionalParams,
+    getItems, getCount, asyncFinally
     ;
 
   if(args.length === 2) {
@@ -156,7 +157,7 @@ exports.list = function(searchQuery, options, cb){
   sortOption[options.sort] = options.order === 'asc' ? 1 : -1;
   positionalParams = { skip: options.offset || 0, limit:options.max || 10, sort: sortOption };
 
-  var getItems = function(done) {
+  getItems = function(done) {
     mongoose.model(MODELNAME).find(searchQuery, projection, positionalParams, function(err,results){
       if(err != null){
         return done(err);
@@ -165,7 +166,7 @@ exports.list = function(searchQuery, options, cb){
     });
   };
 
-  var getCount = function(done) {
+  getCount = function(done) {
     mongoose.model(MODELNAME).count(searchQuery, function(err,result){
       if(err != null){
         return done(err);
@@ -174,7 +175,7 @@ exports.list = function(searchQuery, options, cb){
     });
   };
 
-  var asyncFinally = function(err, results) {
+  asyncFinally = function(err, results) {
     if (err) {
       return cb(err);
     }
