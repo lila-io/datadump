@@ -2,23 +2,13 @@
 
 var
 	mongoose = require('mongoose'),
-  config = require('../conf/config'),
 	_ = require('underscore'),
 	async = require('async'),
 	MODELNAME = 'BucketToken',
   ValidatorError = mongoose.Error.ValidatorError,
   ValidationError = mongoose.Error.ValidationError,
-  JWT = require('jsonwebtoken')
+  tokenService = require('./TokenService')
 ;
-
-function generateToken(id){
-
-  var valueToSign = id + '___' + Date.now() + '___' + Math.random();
-  if(id == null){
-    throw new Error('Illegal arguments, must be: id. ' + Array.prototype.slice.call(arguments));
-  }
-  return JWT.sign(valueToSign, config.auth.token.secret);
-}
 
 exports.findOne = function(token, cb){
 
@@ -45,30 +35,31 @@ exports.createOne = function(bucketId, cb){
 
   var
     args = Array.prototype.slice.call(arguments),
-    token, props
-    ;
+    props = {
+      bucket: bucketId
+    };
 
   if(bucketId == null || !_.isFunction(cb)){
     throw new Error('Illegal arguments, must be: bucketId, callback: ' + args);
   }
 
-  token = generateToken(bucketId);
-  props = {
-    bucket: bucketId,
-    token: token
-  };
+  tokenService.generateToken(bucketId, function(generatedToken){
 
-  mongoose.model(MODELNAME).create(props,function(err,item){
-    if(err != null){
-      if(err.name === 'MongoError' && err.code === 11000){
-        var newErr = new ValidationError(err);
-        newErr.errors.path = new ValidatorError('path', 'Bucket path should be unique', 'user defined', props.path);
-        return cb(newErr);
+    props.token = generatedToken;
+
+    mongoose.model(MODELNAME).create(props,function(err,item){
+      if(err != null){
+        if(err.name === 'MongoError' && err.code === 11000){
+          var newErr = new ValidationError(err);
+          newErr.errors.path = new ValidatorError('path', 'Bucket path should be unique', 'user defined', props.path);
+          return cb(newErr);
+        }
+        return cb(err);
       }
-      return cb(err);
-    }
-    cb(null,item);
+      cb(null,item);
+    });
   });
+
 };
 
 exports.deleteOne = function(id, cb){

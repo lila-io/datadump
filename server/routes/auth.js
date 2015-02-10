@@ -7,13 +7,13 @@ var router = require('express').Router(),
   workflowService = require('../services/WorkflowService'),
   async = require('async'),
   passport = require('passport'),
-  tokenService = require('../services/TokenService'),
+  userTokenService = require('../services/UserTokenService'),
   userService = require('../services/UserService')
   ;
 
 function loginUserAndGenerateToken(user, req, res, next) {
   req.user = user;
-  tokenService.generateToken(user._id, function (err, token) {
+  userTokenService.createUserToken(user._id, function (err, token) {
     if (err) {
       return next(err);
     } else {
@@ -59,7 +59,7 @@ router.post(config.routes.auth.login, function (req, res, next) {
 
   var workflow = workflowService(function (data) {
     if (data && data.success) {
-      tokenService.generateToken(req.user._id, function (err, token) {
+      userTokenService.createUserToken(req.user._id, function (err, token) {
         if (err) {
           res.send(500)
         } else {
@@ -258,7 +258,7 @@ router.get(config.routes.auth.logout, function (req, res, next) {
   }
 
   if (req.user._id) {
-    tokenService.deleteUserTokens(req.user._id, function (err) {
+    userTokenService.deleteUserTokens(req.user._id, function (err) {
       if (err) {
         return next(err);
       }

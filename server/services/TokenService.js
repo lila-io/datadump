@@ -2,49 +2,30 @@
 
 var
   config = require('../conf/config'),
-  mongoose = require('mongoose'),
-  UserToken = mongoose.model('UserToken'),
-  JWT = require('jsonwebtoken')
+  JWT = require('jsonwebtoken'),
+  crypto = require('crypto')
 ;
 
-exports.generateToken = function(userId, cb){
+exports.generateToken = function(id,cb){
 
-  if(!userId){
-    throw new Error('User id is required');
+  if(id == null || 'function' !== typeof cb){
+    throw new Error('Illegal arguments, must be: id, fn.' + Array.prototype.slice.call(arguments));
   }
 
-  if('function' !== typeof cb){
-    throw new Error('Callback is required for tokenGenerator')
-  }
-
-  var data = {userId:userId}
-  var valueToSign = userId + '___' + Date.now();
-  data.token = JWT.sign(valueToSign, config.auth.token.secret);
-  UserToken.create( data, function(err, tokenEntity){
-    if(err) {
-      throw err;
-    }
-    return cb(null,tokenEntity.token);
+  exports.generateUniqueNumber(function(uniqueNumber){
+    var valueToSign = id + '___' + uniqueNumber;
+    cb( JWT.sign(valueToSign, config.auth.token.secret) );
   });
-
 };
 
-exports.deleteUserTokens = function(userId, cb){
-  if(!userId){
-    throw new Error('User id is required');
-  }
+exports.generateUniqueNumber = function(cb){
 
   if('function' !== typeof cb){
-    throw new Error('Callback is required for tokenGenerator')
+    throw new Error('Callback is required');
   }
 
-  UserToken.remove({userId:userId}, function(err){
-    if(err) {
-      cb(err);
-    } else {
-      cb(null);
-    }
-  })
+  crypto.randomBytes(48, function(ex, buf) {
+    cb( buf.toString('hex') );
+  });
 };
-
 
