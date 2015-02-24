@@ -22,7 +22,7 @@ describe('playlist router path tests', function () {
   after(function(){
   });
 
-  describe('GET /', function () {
+  describe('GET / succeeds', function () {
 
     it('renders index', function (done) {
 
@@ -39,11 +39,29 @@ describe('playlist router path tests', function () {
 
   });
 
-  describe('GET /token.html', function () {
+  describe('authentication pages rendering fails', function () {
 
-    it('renders 404', function (done) {
+    it('renders 404 on blank', function (done) {
       request(app)
-        .get('/token.html')
+        .get('/blank.html')
+        .expect(404,done);
+    });
+
+    it('renders 404 on login', function (done) {
+      request(app)
+        .get('/login.html')
+        .expect(404,done);
+    });
+
+    it('renders 404 on name', function (done) {
+      request(app)
+        .get('/name.html')
+        .expect(404,done);
+    });
+
+    it('renders 404 on success', function (done) {
+      request(app)
+        .get('/success.html')
         .expect(404,done);
     });
 

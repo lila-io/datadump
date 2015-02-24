@@ -78,7 +78,7 @@ describe('bucket router path tests', function () {
     app = express();
     app.use(bodyParser.json());
     app.use(middleModifier);
-    routerMock = rewire('../../../server/routes/bucket');
+    routerMock = rewire('../../../server/routes/bucketItem');
     routerMock.__set__({
       allowAll:function(req,res,next){ next() },
       allowUser:function(req,res,next){ next() }
@@ -90,13 +90,28 @@ describe('bucket router path tests', function () {
   });
 
   describe('GET /', function () {
+    it('returns 404', function (done) {
+      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .get('/')
+          .expect('Content-Type', /json/)
+          .expect(404, function (err, res) {
+            reqDone()
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+  });
+
+  describe('GET /bucketPath', function () {
 
     it('returns no items', function (done) {
 
       withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
 
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             list: function (searchOpts, positionalOpts, cb) {
               cb(null, [], 0);
             }
@@ -123,7 +138,7 @@ describe('bucket router path tests', function () {
       withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
 
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             list: function (searchOpts, positionalOpts, cb) {
               cb(null, [{_id: 3}, {_id: 4}], 44);
             }
@@ -149,7 +164,7 @@ describe('bucket router path tests', function () {
       withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
 
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             list: function (searchOpts, positionalOpts, cb) {
               cb('arrgh');
             }
@@ -174,7 +189,7 @@ describe('bucket router path tests', function () {
       withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
 
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             list: function (searchOpts, positionalOpts, cb) {
               (searchOpts.user === undefined).should.be.true;
               searchOpts.isPublic.should.be.true;
@@ -197,7 +212,7 @@ describe('bucket router path tests', function () {
     it('forces anonymous to search for public on guest path', function (done) {
       withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
       var revert = routerMock.__set__({
-        bucketService: {
+        bucketItemService: {
           list: function (searchOpts, positionalOpts, cb) {
             (searchOpts.user === undefined).should.be.true;
             searchOpts.isPublic.should.be.true;
@@ -269,11 +284,11 @@ describe('bucket router path tests', function () {
 
   });
 
-  describe('GET /:id', function () {
+  describe('GET /bucketPath/:id', function () {
 
     it('fails with error', function (done) {
       var revert = routerMock.__set__({
-        bucketService: {
+        bucketItemService: {
           findOne: function (a, b, c) {
             c('error')
           }
@@ -292,7 +307,7 @@ describe('bucket router path tests', function () {
 
     it('returns with 404 if no bucket is found', function (done) {
       var revert = routerMock.__set__({
-        bucketService: {
+        bucketItemService: {
           findOne: function (a, b, c) {
             c(null, null)
           }
@@ -309,7 +324,7 @@ describe('bucket router path tests', function () {
 
     it('returns with 403', function (done) {
       var revert = routerMock.__set__({
-        bucketService: {
+        bucketItemService: {
           findOne: function (a, b, c) {
             c(null, {isPublic: false})
           }
@@ -327,7 +342,7 @@ describe('bucket router path tests', function () {
 
     it('returns public bucket', function (done) {
       var revert = routerMock.__set__({
-        bucketService: {
+        bucketItemService: {
           findOne: function (a, b, c) {
             c(null, {isPublic: true})
           }
@@ -346,13 +361,13 @@ describe('bucket router path tests', function () {
   });
 
 
-  describe('POST /', function () {
+  describe('POST /bucketPath/', function () {
 
     it('fails with error', function (done) {
 
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             createOne: function (a, b) {
               b('error')
             }
@@ -376,7 +391,7 @@ describe('bucket router path tests', function () {
 
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             createOne: function (a, b) {
               b(null,{_id:444})
             }
@@ -400,7 +415,7 @@ describe('bucket router path tests', function () {
 
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             createOne: function (a, b) {
 
               a.path.should.equal('');
@@ -429,7 +444,7 @@ describe('bucket router path tests', function () {
 
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          bucketService: {
+          bucketItemService: {
             createOne: function (a, b) {
 
               a.path.should.equal('ttl');
@@ -459,7 +474,7 @@ describe('bucket router path tests', function () {
   });
 
 
-  describe('PUT /:id', function () {
+  describe('PUT /bucketPath/:id', function () {
 
     it('returns 403 as user does not have right to access resource',function(done){
       withRequestData({user: {_id:123}}, function (reqDone) {
@@ -490,7 +505,7 @@ describe('bucket router path tests', function () {
             canAccessModifyResourcePath : function() { return true; },
             resourceOwnerId: function(){return 123;}
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c('arrrgh')
             }
@@ -517,7 +532,7 @@ describe('bucket router path tests', function () {
             canAccessModifyResourcePath : function() { return true; },
             resourceOwnerId: function(){return 123;}
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,null)
             }
@@ -544,7 +559,7 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;},
             canModifyResource: function(){ return false; }
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:765}})
             }
@@ -571,7 +586,7 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;},
             canModifyResource: function(){ return true; }
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
             },
@@ -607,7 +622,7 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;},
             canModifyResource: function(){ return true; }
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
             },
@@ -638,7 +653,7 @@ describe('bucket router path tests', function () {
   });
 
 
-  describe('DELETE /:id', function () {
+  describe('DELETE /bucketPath/:id', function () {
 
     it('returns 403 as user does not have right to access resource',function(done){
       withRequestData({user: {_id:123}}, function (reqDone) {
@@ -665,7 +680,7 @@ describe('bucket router path tests', function () {
             canAccessModifyResourcePath : function() { return true; },
             resourceOwnerId: function(){return 123;}
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c('arrrgh')
             }
@@ -691,7 +706,7 @@ describe('bucket router path tests', function () {
             canAccessModifyResourcePath : function() { return true; },
             resourceOwnerId: function(){return 123;}
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,null)
             }
@@ -717,7 +732,7 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;},
             canModifyResource: function(){ return false; }
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:765}})
             }
@@ -743,7 +758,7 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;},
             canModifyResource: function(){ return true; }
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
             },
@@ -774,7 +789,7 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;},
             canModifyResource: function(){ return true; }
           },
-          bucketService: {
+          bucketItemService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
             },

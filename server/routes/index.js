@@ -6,7 +6,12 @@ router.get('/', function (req, res) {
 	res.render('index');
 });
 
-router.get('/token.html', function (req, res) {
+// security via obscurity
+router.get([
+  '/blank.html',
+  '/login.html',
+  '/name.html',
+  '/success.html'], function (req, res) {
   res.status(404).end();
 });
 

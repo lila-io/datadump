@@ -4,7 +4,7 @@
 
 var
 	router = require('express').Router(),
-	bucketService = require('../services/BucketService'),
+	bucketItemService = require('../services/BucketItemService'),
   ras = require('../services/RouteAccessService'),
 	routeAuthenticationService = require('../services/RouteAuthenticationService')
 	;
@@ -45,12 +45,12 @@ router.use(authAllowAll);
  |----------------+----------+--------------+----------+------------+-------------|
  */
 
-router.get('/:id', function (req, res) {
+router.get('/:path/:id', function (req, res) {
 
   var itemId = req.params.id;
   var userId = ras.resourceOwnerId(req);
 
-  bucketService.findOne(itemId, userId, function (err, item) {
+  bucketItemService.findOne(itemId, userId, function (err, item) {
     if (err != null) {
       return res.status(400).send({errors : [err]});
     }
@@ -127,7 +127,7 @@ function buildPositionalOptions(req){
  +----------------+----------+---------------+----------------+----------------+
  */
 
-router.get('/', function (req, res) {
+router.get('/:path', function (req, res) {
 
   /* jshint maxcomplexity:15 */
 
@@ -136,7 +136,7 @@ router.get('/', function (req, res) {
     return;
   }
 
-  bucketService.list(buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
+  bucketItemService.list(buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
     if (err != null) {
       return res.status(400).send({errors: [err]});
     }
@@ -147,7 +147,7 @@ router.get('/', function (req, res) {
 });
 
 
-router.post('/', authAllowUser, function (req, res) {
+router.post('/:path', authAllowUser, function (req, res) {
 
 	var itemData = {
 		path        : req.param('path') || '',
@@ -157,7 +157,7 @@ router.post('/', authAllowUser, function (req, res) {
 		data        : []
 	};
 
-	bucketService.createOne(itemData, function (err, item) {
+	bucketItemService.createOne(itemData, function (err, item) {
 		if (err != null) {
       return res.status(400).send({errors: [err]});
 		}
@@ -183,7 +183,7 @@ router.post('/', authAllowUser, function (req, res) {
  | admin          | *        | *            | TRUE       | 200         |
  |----------------+----------+--------------+------------+-------------|
  */
-router.put('/:id', authAllowUser, function (req, res) {
+router.put('/:path/:id', authAllowUser, function (req, res) {
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();
@@ -203,7 +203,7 @@ router.put('/:id', authAllowUser, function (req, res) {
     updateFields.isPublic = (req.param('isPublic') + '' === 'true');
   }
 
-  bucketService.findOne(itemId, userId, function (err, item) {
+  bucketItemService.findOne(itemId, userId, function (err, item) {
     if (err != null) {
       return res.status(400).send({errors : [err]});
     }
@@ -216,7 +216,7 @@ router.put('/:id', authAllowUser, function (req, res) {
         return;
       }
 
-      bucketService.updateOne(itemId, updateFields, function (errr, item) {
+      bucketItemService.updateOne(itemId, updateFields, function (errr, item) {
         if (errr != null) {
           res.status(400).send({errors: [errr]});
           return;
@@ -244,7 +244,7 @@ router.put('/:id', authAllowUser, function (req, res) {
  | admin          | *        | *            | TRUE       | 200         |
  |----------------+----------+--------------+------------+-------------|
  */
-router.delete('/:id', authAllowUser, function (req, res) {
+router.delete('/:path/:id', authAllowUser, function (req, res) {
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();
@@ -254,7 +254,7 @@ router.delete('/:id', authAllowUser, function (req, res) {
   var itemId = req.params.id;
   var userId = ras.resourceOwnerId(req);
 
-  bucketService.findOne(itemId, userId, function (err, item) {
+  bucketItemService.findOne(itemId, userId, function (err, item) {
     if (err != null) {
       return res.status(400).send({errors : [err]});
     }
@@ -267,7 +267,7 @@ router.delete('/:id', authAllowUser, function (req, res) {
         return;
       }
 
-      bucketService.deleteOne(itemId, userId, function (errrr) {
+      bucketItemService.deleteOne(itemId, userId, function (errrr) {
         if (errrr != null) {
           return res.status(400).send({errors: [errrr]});
         }
@@ -275,6 +275,7 @@ router.delete('/:id', authAllowUser, function (req, res) {
       });
     }
   });
+
 
 });
 
