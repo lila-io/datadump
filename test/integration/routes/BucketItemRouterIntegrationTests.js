@@ -105,13 +105,39 @@ describe('Bucket Item router path tests', function () {
 
   describe('GET /bucketPath', function () {
 
+    it('returns 404 as no user present', function (done) {
+      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .get('/some-user-path')
+          .expect(404, function (err, res) {
+            reqDone()
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('returns 401 as cannot access list', function (done) {
+      withRequestData({user:{_id:123},resourceOwner:{_id:'x'},resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
+        request(app)
+          .get('/some-user-path')
+          .expect(401, function (err, res) {
+            reqDone()
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
     it('returns no items', function (done) {
 
-      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+      withRequestData({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
 
         var revert = routerMock.__set__({
           bucketItemService: {
-            list: function (searchOpts, positionalOpts, cb) {
+            list: function (uid, path, searchOpts, positionalOpts, cb) {
+              uid.should.equal(123);
+              path.should.equal('some-user-path');
               cb(null, [], 0);
             }
           }
@@ -134,11 +160,13 @@ describe('Bucket Item router path tests', function () {
 
     it('returns some items', function (done) {
 
-      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+      withRequestData({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType: UrlAccessType.ME}, function (reqDone) {
 
         var revert = routerMock.__set__({
           bucketItemService: {
-            list: function (searchOpts, positionalOpts, cb) {
+            list: function (uid, path, searchOpts, positionalOpts, cb) {
+              uid.should.equal(123);
+              path.should.equal('some-user-path');
               cb(null, [{_id: 3}, {_id: 4}], 44);
             }
           }
@@ -160,11 +188,11 @@ describe('Bucket Item router path tests', function () {
 
     it('returns error', function (done) {
 
-      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+      withRequestData({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType: UrlAccessType.ME}, function (reqDone) {
 
         var revert = routerMock.__set__({
           bucketItemService: {
-            list: function (searchOpts, positionalOpts, cb) {
+            list: function (uid, path, searchOpts, positionalOpts, cb) {
               cb('arrgh');
             }
           }
@@ -183,84 +211,6 @@ describe('Bucket Item router path tests', function () {
       });
     });
 
-    it('allows anonymous on guest path', function (done) {
-
-      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
-
-        var revert = routerMock.__set__({
-          bucketItemService: {
-            list: function (searchOpts, positionalOpts, cb) {
-              (searchOpts.user === undefined).should.be.true;
-              searchOpts.isPublic.should.be.true;
-              cb(null, [{_id: 3}, {_id: 4}], 44);
-            }
-          }
-        })
-        request(app)
-          .get('/some-user-path')
-          .expect(200, function (err, res) {
-            reqDone();
-            revert();
-            if (err) return done(err);
-            done();
-          });
-
-      });
-    });
-
-    it('forces anonymous to search for public on guest path', function (done) {
-      withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
-      var revert = routerMock.__set__({
-        bucketItemService: {
-          list: function (searchOpts, positionalOpts, cb) {
-            (searchOpts.user === undefined).should.be.true;
-            searchOpts.isPublic.should.be.true;
-            cb(null, [{_id: 3}, {_id: 4}], 44);
-          }
-        }
-      })
-      var req = request(app);
-      req.query = {isPublic: false};
-      req.get('/some-user-path')
-        .expect(200, function (err, res) {
-          revert();
-          reqDone();
-          if (err) return done(err);
-          done();
-        });
-      })
-    });
-
-    it('rejects anonymous on *me* path', function (done) {
-      withRequestData({resourceOwnerType: UrlAccessType.ME}, function (reqDone) {
-        request(app).get('/some-user-path').expect(401, function (err, res) {
-          reqDone();
-          if (err) return done(err);
-          done();
-        });
-      });
-    });
-
-    it('rejects anonymous on *user* path', function (done) {
-      withRequestData({resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
-        request(app).get('/some-user-path').expect(401, function (err, res) {
-          reqDone();
-          if (err) return done(err);
-          done();
-        });
-      });
-    });
-
-    it('rejects anonymous on *admin* path', function (done) {
-      withRequestData({resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
-        request(app).get('/some-user-path').expect(401, function (err, res) {
-          reqDone();
-          if (err) return done(err);
-          done();
-        });
-      });
-    });
-
     it('rejects user on *user* path when requesting not own data', function (done) {
       withRequestData({user:{_id:123},resourceOwner:{_id:'x'},resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
         request(app).get('/some-user-path').expect(401, function (err, res) {
@@ -271,9 +221,9 @@ describe('Bucket Item router path tests', function () {
       });
     });
 
-    it('rejects user on *admin* path', function (done) {
-      withRequestData({user:{_id:123},resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
-        request(app).get('/some-user-path').expect(401, function (err, res) {
+    it('rejects user on *admin* path, returning 404', function (done) {
+      withRequestData({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
+        request(app).get('/some-user-path').expect(404, function (err, res) {
           reqDone();
           if (err) return done(err);
           done();
@@ -381,8 +331,8 @@ describe('Bucket Item router path tests', function () {
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           bucketItemService: {
-            createOne: function (a, b) {
-              b('error')
+            createOne: function (user, bucket, data, cb) {
+              cb('error')
             }
           }
         });
@@ -405,8 +355,8 @@ describe('Bucket Item router path tests', function () {
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           bucketItemService: {
-            createOne: function (a, b) {
-              b(null,{_id:444})
+            createOne: function (user, bucket, data, cb) {
+              cb(null,{_id:444})
             }
           }
         });
@@ -422,245 +372,6 @@ describe('Bucket Item router path tests', function () {
           });
       });
 
-    });
-
-    it('check default bucket values', function (done) {
-
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          bucketItemService: {
-            createOne: function (a, b) {
-
-              a.path.should.equal('some-user-path');
-              a.description.should.equal('');
-              a.isPublic.should.equal(false);
-              a.user.should.equal(123);
-              a.data.length.should.equal(0);
-
-              b(null,{_id:444})
-            }
-          }
-        });
-        request(app)
-          .post('/some-user-path')
-          .expect(200, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-
-    });
-
-    it('check overriden bucket values', function (done) {
-
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          bucketItemService: {
-            createOne: function (a, b) {
-
-              a.path.should.equal('ttl');
-              a.description.should.equal('dscr');
-              a.isPublic.should.equal(true);
-              a.user.should.equal(123);
-              a.data.length.should.equal(0);
-
-              b(null,{_id:444})
-            }
-          }
-        });
-        request(app)
-          .post('/some-user-path')
-          .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(200, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-
-    });
-
-  });
-
-
-  describe('PUT /bucketPath/:id', function () {
-
-    it('returns 403 as user does not have right to access resource',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath: function() {
-              return false;
-            }
-          }
-        });
-        request(app)
-          .put('/some-user-path/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(403, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
-    it('returns 400 as user has access but error is returned',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;}
-          },
-          bucketItemService: {
-            findOne: function(a,b,c){
-              c('arrrgh')
-            }
-          }
-        });
-        request(app)
-          .put('/some-user-path/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(/arrrgh/)
-          .expect(400, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
-    it('returns 404 as user has access but bucket is not found',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;}
-          },
-          bucketItemService: {
-            findOne: function(a,b,c,d){
-              d(null,null)
-            }
-          }
-        });
-        request(app)
-          .put('/some-user-path/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(404, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
-    it('returns 403 as user has access but is not the owner',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return false; }
-          },
-          bucketItemService: {
-            findOne: function(a,b,c,d){
-              d(null,{user:{_id:765}})
-            }
-          }
-        });
-        request(app)
-          .put('/some-user-path/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(403, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
-    it('returns 400 as update fails',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
-          bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,{user:{_id:123}})
-            },
-            updateOne: function(id,payload,cb){
-              id.should.equal('yay');
-              payload.title.should.equal('ttl');
-              payload.description.should.equal('dscr');
-              payload.isPublic.should.equal(true);
-              Object.keys(payload).length.should.equal(3);
-              cb('arrgh');
-            }
-          }
-        });
-        request(app)
-          .put('/some-user-path/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(/arrgh/)
-          .expect(400, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
-    it('returns 200 as update succeeds',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
-          bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,{user:{_id:123}})
-            },
-            updateOne: function(id,payload,cb){
-              id.should.equal('yay');
-              payload.title.should.equal('ttl');
-              payload.description.should.equal('dscr');
-              payload.isPublic.should.equal(true);
-              Object.keys(payload).length.should.equal(3);
-              cb(null,{_id:7777});
-            }
-          }
-        });
-        request(app)
-          .put('/some-user-path/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
-          .expect(/7777/)
-          .expect(200, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
     });
 
   });
