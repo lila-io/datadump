@@ -39,6 +39,27 @@ exports.findOne = function(itemId, ownerId, cb){
   });
 };
 
+exports.findOneByUserAndPath = function(userId, path, cb){
+
+  var
+    args = Array.prototype.slice.call(arguments),
+    query
+    ;
+
+  if(userId == null || path == null || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: userId, path, callback: ' + args);
+  }
+
+  query = mongoose.model(MODELNAME).findOne({user:userId,path:path});
+
+  query.exec(function(err,item){
+    if(err != null){
+      return cb(err);
+    }
+    cb(null,item);
+  });
+};
+
 exports.createOne = function(properties, cb){
 
 	var props = {}, defaults = {

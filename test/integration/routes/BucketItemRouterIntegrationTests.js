@@ -72,7 +72,7 @@ function middleModifier(req, res, next) {
   }
 }
 
-describe('bucket router path tests', function () {
+describe('Bucket Item router path tests', function () {
 
   before(function(){
     app = express();
@@ -94,7 +94,6 @@ describe('bucket router path tests', function () {
       withRequestData({resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
         request(app)
           .get('/')
-          .expect('Content-Type', /json/)
           .expect(404, function (err, res) {
             reqDone()
             if (err) return done(err);
@@ -118,7 +117,7 @@ describe('bucket router path tests', function () {
           }
         })
         request(app)
-          .get('/')
+          .get('/some-user-path')
           .expect('Content-Type', /json/)
           .expect(/\"data\".?\:.?\[\]/)
           .expect(/\"total\".?\:.?0/)
@@ -145,7 +144,7 @@ describe('bucket router path tests', function () {
           }
         })
         request(app)
-          .get('/')
+          .get('/some-user-path')
           .expect('Content-Type', /json/)
           .expect(/\"data\".?\:.?\[.*_id.*\]/)
           .expect(/\"total\".?\:.?44/)
@@ -171,7 +170,7 @@ describe('bucket router path tests', function () {
           }
         })
         request(app)
-          .get('/')
+          .get('/some-user-path')
           .expect('Content-Type', /json/)
           .expect(/\"errors\".?\:.?\[.*arrgh.*\]/)
           .expect(400, function (err, res) {
@@ -198,7 +197,7 @@ describe('bucket router path tests', function () {
           }
         })
         request(app)
-          .get('/')
+          .get('/some-user-path')
           .expect(200, function (err, res) {
             reqDone();
             revert();
@@ -222,7 +221,7 @@ describe('bucket router path tests', function () {
       })
       var req = request(app);
       req.query = {isPublic: false};
-      req.get('/')
+      req.get('/some-user-path')
         .expect(200, function (err, res) {
           revert();
           reqDone();
@@ -234,7 +233,7 @@ describe('bucket router path tests', function () {
 
     it('rejects anonymous on *me* path', function (done) {
       withRequestData({resourceOwnerType: UrlAccessType.ME}, function (reqDone) {
-        request(app).get('/').expect(401, function (err, res) {
+        request(app).get('/some-user-path').expect(401, function (err, res) {
           reqDone();
           if (err) return done(err);
           done();
@@ -244,7 +243,7 @@ describe('bucket router path tests', function () {
 
     it('rejects anonymous on *user* path', function (done) {
       withRequestData({resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
-        request(app).get('/').expect(401, function (err, res) {
+        request(app).get('/some-user-path').expect(401, function (err, res) {
           reqDone();
           if (err) return done(err);
           done();
@@ -254,7 +253,7 @@ describe('bucket router path tests', function () {
 
     it('rejects anonymous on *admin* path', function (done) {
       withRequestData({resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
-        request(app).get('/').expect(401, function (err, res) {
+        request(app).get('/some-user-path').expect(401, function (err, res) {
           reqDone();
           if (err) return done(err);
           done();
@@ -264,7 +263,7 @@ describe('bucket router path tests', function () {
 
     it('rejects user on *user* path when requesting not own data', function (done) {
       withRequestData({user:{_id:123},resourceOwner:{_id:'x'},resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
-        request(app).get('/').expect(401, function (err, res) {
+        request(app).get('/some-user-path').expect(401, function (err, res) {
           reqDone();
           if (err) return done(err);
           done();
@@ -274,7 +273,7 @@ describe('bucket router path tests', function () {
 
     it('rejects user on *admin* path', function (done) {
       withRequestData({user:{_id:123},resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
-        request(app).get('/').expect(401, function (err, res) {
+        request(app).get('/some-user-path').expect(401, function (err, res) {
           reqDone();
           if (err) return done(err);
           done();
@@ -289,13 +288,16 @@ describe('bucket router path tests', function () {
     it('fails with error', function (done) {
       var revert = routerMock.__set__({
         bucketItemService: {
-          findOne: function (a, b, c) {
-            c('error')
+          findOne: function (a, b, c, d) {
+            a.should.equal('id');
+            should(b).not.be.ok;
+            c.should.equal('some-user-path');
+            d('error');
           }
         }
       })
       request(app)
-        .get('/bla')
+        .get('/some-user-path/id')
         .expect('Content-Type', /json/)
         .expect(/error/)
         .expect(400, function (err, res) {
@@ -308,13 +310,16 @@ describe('bucket router path tests', function () {
     it('returns with 404 if no bucket is found', function (done) {
       var revert = routerMock.__set__({
         bucketItemService: {
-          findOne: function (a, b, c) {
-            c(null, null)
+          findOne: function (a, b, c, d) {
+            a.should.equal('id');
+            should(b).not.be.ok;
+            c.should.equal('some-user-path');
+            d(null,null);
           }
         }
       })
       request(app)
-        .get('/bla')
+        .get('/some-user-path/id')
         .expect(404, function (err, res) {
           revert();
           if (err) return done(err);
@@ -323,33 +328,41 @@ describe('bucket router path tests', function () {
     });
 
     it('returns with 403', function (done) {
-      var revert = routerMock.__set__({
-        bucketItemService: {
-          findOne: function (a, b, c) {
-            c(null, {isPublic: false})
+      withRequestData({user:{_id:123},resourceOwner:{_id:'x'},resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
+        var revert = routerMock.__set__({
+          bucketItemService: {
+            findOne: function (a, b, c, d) {
+              a.should.equal('itemId123');
+              b.should.equal('x');
+              c.should.equal('some-user-path');
+              d(null, {isPublic: false});
+            }
           }
-        }
-      })
-      var req = request(app);
-      req.user = {_id: 'some user id'}
-      req.get('/bla')
-        .expect(403, function (err, res) {
-          revert();
-          if (err) return done(err);
-          done();
-        });
+        })
+        var req = request(app);
+        req.get('/some-user-path/itemId123')
+          .expect(403, function (err, res) {
+            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
     });
 
-    it('returns public bucket', function (done) {
+    it('returns public item', function (done) {
       var revert = routerMock.__set__({
         bucketItemService: {
-          findOne: function (a, b, c) {
-            c(null, {isPublic: true})
+          findOne: function (a, b, c, d) {
+            a.should.equal('itemId123');
+            should(b).not.be.ok;
+            c.should.equal('some-user-path');
+            d(null, {isPublic: true});
           }
         }
       })
       var req = request(app);
-      req.get('/bla')
+      req.get('/some-user-path/itemId123')
         .expect(200)
         .expect(/data/, function (err, res) {
           revert();
@@ -374,7 +387,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .post('/')
+          .post('/some-user-path')
           .expect('Content-Type', /json/)
           .expect(/error/)
           .expect(400, function (err, res) {
@@ -398,7 +411,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .post('/')
+          .post('/some-user-path')
           .expect('Content-Type', /json/)
           .expect(/\"data\".?\:.?\{.*_id.*\}/)
           .expect(200, function (err, res) {
@@ -418,7 +431,7 @@ describe('bucket router path tests', function () {
           bucketItemService: {
             createOne: function (a, b) {
 
-              a.path.should.equal('');
+              a.path.should.equal('some-user-path');
               a.description.should.equal('');
               a.isPublic.should.equal(false);
               a.user.should.equal(123);
@@ -429,7 +442,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .post('/')
+          .post('/some-user-path')
           .expect(200, function (err, res) {
             revert();
             reqDone();
@@ -458,7 +471,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .post('/')
+          .post('/some-user-path')
           .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(200, function (err, res) {
@@ -486,7 +499,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .put('/yay')
+          .put('/some-user-path/yay')
           .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(403, function (err, res) {
@@ -512,7 +525,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .put('/yay')
+          .put('/some-user-path/yay')
           .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(/arrrgh/)
@@ -533,13 +546,13 @@ describe('bucket router path tests', function () {
             resourceOwnerId: function(){return 123;}
           },
           bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,null)
+            findOne: function(a,b,c,d){
+              d(null,null)
             }
           }
         });
         request(app)
-          .put('/yay')
+          .put('/some-user-path/yay')
           .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(404, function (err, res) {
@@ -560,13 +573,13 @@ describe('bucket router path tests', function () {
             canModifyResource: function(){ return false; }
           },
           bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,{user:{_id:765}})
+            findOne: function(a,b,c,d){
+              d(null,{user:{_id:765}})
             }
           }
         });
         request(app)
-          .put('/yay')
+          .put('/some-user-path/yay')
           .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(403, function (err, res) {
@@ -601,7 +614,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .put('/yay')
+          .put('/some-user-path/yay')
           .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(/arrgh/)
@@ -637,7 +650,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .put('/yay')
+          .put('/some-user-path/yay')
           .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
           .expect(/7777/)
@@ -663,7 +676,7 @@ describe('bucket router path tests', function () {
           },
         });
         request(app)
-          .delete('/yay')
+          .delete('/some-user-path/yay')
           .expect(403, function (err, res) {
             revert();
             reqDone();
@@ -687,7 +700,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .delete('/yay')
+          .delete('/some-user-path/yay')
           .set('Accept', 'application/json')
           .expect(/arrrgh/)
           .expect(400, function (err, res) {
@@ -713,7 +726,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .delete('/yay')
+          .delete('/some-user-path/yay')
           .set('Accept', 'application/json')
           .expect(404, function (err, res) {
             revert();
@@ -739,7 +752,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .delete('/yay')
+          .delete('/some-user-path/yay')
           .set('Accept', 'application/json')
           .expect(403, function (err, res) {
             revert();
@@ -769,7 +782,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .delete('/yay')
+          .delete('/some-user-path/yay')
           .set('Accept', 'application/json')
           .expect(/arrgh/)
           .expect(400, function (err, res) {
@@ -800,7 +813,7 @@ describe('bucket router path tests', function () {
           }
         });
         request(app)
-          .delete('/yay')
+          .delete('/some-user-path/yay')
           .set('Accept', 'application/json')
           .expect(204, function (err, res) {
             revert();

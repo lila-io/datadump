@@ -45,12 +45,15 @@ router.use(authAllowAll);
  |----------------+----------+--------------+----------+------------+-------------|
  */
 
-router.get('/:path/:id', function (req, res) {
 
-  var itemId = req.params.id;
+// /user-specified-path/ends_With-Id_123
+router.get(/^(?:\/){1}([_\-0-9a-zA-Z]+)\/([_\-0-9a-zA-Z]+){1}(?:\/)?$/, function (req, res) {
+
+  var path = req.params[0];
+  var itemId = req.params[1];
   var userId = ras.resourceOwnerId(req);
 
-  bucketItemService.findOne(itemId, userId, function (err, item) {
+  bucketItemService.findOne(itemId, userId, path, function (err, item) {
     if (err != null) {
       return res.status(400).send({errors : [err]});
     }
@@ -62,7 +65,6 @@ router.get('/:path/:id', function (req, res) {
       res.send({data : item});
     }
   });
-
 });
 
 function buildSearchOptions(req){
@@ -127,9 +129,11 @@ function buildPositionalOptions(req){
  +----------------+----------+---------------+----------------+----------------+
  */
 
-router.get('/:path', function (req, res) {
+router.get(/^(?:\/){1}([_\-0-9a-zA-Z]+)(?:\/)?$/, function (req, res) {
 
   /* jshint maxcomplexity:15 */
+
+  var path = req.params[0];
 
   if(!ras.canAccessList(req)){
     res.status(401).end();
