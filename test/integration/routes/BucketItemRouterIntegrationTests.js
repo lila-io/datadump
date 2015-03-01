@@ -384,7 +384,7 @@ describe('Bucket Item router path tests', function () {
         var revert = routerMock.__set__({
           ras : {
             canAccessModifyResourcePath : function() { return false; }
-          },
+          }
         });
         request(app)
           .delete('/some-user-path/yay')
@@ -405,8 +405,8 @@ describe('Bucket Item router path tests', function () {
             resourceOwnerId: function(){return 123;}
           },
           bucketItemService: {
-            findOne: function(a,b,c){
-              c('arrrgh')
+            deleteOne: function(a,b,c,d){
+              d('arrrgh')
             }
           }
         });
@@ -423,7 +423,7 @@ describe('Bucket Item router path tests', function () {
       });
     });
 
-    it('returns 404 as user has access but bucket is not found',function(done){
+    it('returns 404 as user has access but parent bucket is not found',function(done){
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           ras : {
@@ -431,8 +431,8 @@ describe('Bucket Item router path tests', function () {
             resourceOwnerId: function(){return 123;}
           },
           bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,null)
+            deleteOne: function(a,b,c,d){
+              d(null,null)
             }
           }
         });
@@ -448,78 +448,19 @@ describe('Bucket Item router path tests', function () {
       });
     });
 
-    it('returns 403 as user has access but is not the owner',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return false; }
-          },
-          bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,{user:{_id:765}})
-            }
-          }
-        });
-        request(app)
-          .delete('/some-user-path/yay')
-          .set('Accept', 'application/json')
-          .expect(403, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
-    it('returns 400 as delete fails',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
-          bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,{user:{_id:123}})
-            },
-            deleteOne: function(id,owner,cb){
-              id.should.equal('yay');
-              cb('arrgh');
-            }
-          }
-        });
-        request(app)
-          .delete('/some-user-path/yay')
-          .set('Accept', 'application/json')
-          .expect(/arrgh/)
-          .expect(400, function (err, res) {
-            revert();
-            reqDone();
-            if (err) return done(err);
-            done();
-          });
-      });
-    });
-
     it('returns 200 as delete succeeds',function(done){
       withRequestData({user: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           ras : {
             canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
+            resourceOwnerId: function(){return 123;}
           },
           bucketItemService: {
-            findOne: function(a,b,c){
-              c(null,{user:{_id:123}})
-            },
-            deleteOne: function(id,owner,cb){
-              id.should.equal('yay');
-              cb(null);
+            deleteOne: function(itemId, userId, path, cb){
+              itemId.should.equal('yay');
+              userId.should.equal(123);
+              path.should.equal('some-user-path');
+              cb(null,{});
             }
           }
         });

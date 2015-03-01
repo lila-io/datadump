@@ -158,7 +158,7 @@ router.delete(/^(?:\/){1}([_\-0-9a-zA-Z]+)\/([_\-0-9a-zA-Z]+){1}(?:\/)?$/, authA
       return res.status(400).send({errors: [errrr]});
     }
     if (deleted == null) {
-      return res.status(400).send({errors: ['Could not delete item']});
+      return res.status(404).send({errors: ['Could not delete item']});
     }
     res.status(204).end();
   });
