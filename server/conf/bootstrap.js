@@ -27,6 +27,7 @@ exports.init = function () {
 
   if('test' === environment){
     mongoose.connection.db.dropDatabase();
+    return createRoles().then(createTestUsers);
   }
 
   return createRoles().then(createUsers);
@@ -49,6 +50,14 @@ exports.init = function () {
     ]);
   }
 
+  function createTestUsers(roles){
+    console.log('creating users with roles:', roles);
+    return q.all([
+      createSuperAdminUser(roles),
+      createTestUser(roles)
+    ]);
+  }
+
   function createSuperAdminUser(roles){
     console.log('setting up superadmin');
     var role = roles[1];
@@ -65,5 +74,15 @@ exports.init = function () {
         break;
     }
     return q.ninvoke(User, 'findOrCreate', superadmin, true);
+  }
+
+  function createTestUser(roles){
+    console.log('setting up test user');
+    var role = roles[0];
+    if('ROLE_USER' !== role.authority){
+      throw new Error('Expecting user role')
+    }
+    var user = { username:'user', password:'user', authorities:[role._id], enabled:true };
+    return q.ninvoke(User, 'findOrCreate', user, true);
   }
 };
