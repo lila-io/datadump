@@ -61,8 +61,14 @@ UserSchema.methods.comparePassword = function (candidatePassword, cb) {
 
 UserSchema.statics.findOrCreate = function (data, overwritePassword, cb) {
 
+  data = data || {};
+
   var pattern = new RegExp('^'+data.username+'$');
   var self = this;
+
+  if(data.username == null){
+    return cb('username is required');
+  }
 
   if(overwritePassword !== true){
     overwritePassword = false;
@@ -73,7 +79,7 @@ UserSchema.statics.findOrCreate = function (data, overwritePassword, cb) {
 
     if(users && users.length) {
       if(users.length > 1){
-        throw new Error('More than one user with the same username');
+        return cb('More than one user found');
       }
       if(overwritePassword){
         users[0].comparePassword(data.password, function(e11, isMatch){

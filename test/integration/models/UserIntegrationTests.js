@@ -202,4 +202,87 @@ describe('User schema integration tests', function () {
 
   });
 
+  describe('static method findOrCreate', function () {
+
+    it('returns error as username is required', function (done) {
+      User.findOrCreate(null,null,function(err,doc){
+        err.should.eql('username is required');
+        should(doc).not.be.ok;
+        done();
+      });
+    });
+
+    it('creates nonexistent user', function (done) {
+      User.findOrCreate({username:'doesnotexist'},null,function(err,doc){
+        should(err).not.be.ok;
+        should(doc).be.ok;
+        doc.username.should.eql('doesnotexist');
+        done();
+      });
+    });
+
+    it('finds existing user', function (done) {
+
+      User.create({username:'existing'},function(err,doc){
+        should(err).not.be.ok;
+
+        User.find(function(err1,docsBefore){
+
+          User.findOrCreate({username:'existing'},null,function(err,doc){
+            should(err).not.be.ok;
+            should(doc).be.ok;
+            doc.username.should.eql('existing');
+
+            User.find(function(err2,docsAfter){
+              docsBefore.length.should.eql(docsAfter.length);
+              done();
+            })
+          });
+        });
+      });
+
+    });
+
+    it('finds user and overwrites its password', function (done) {
+
+      User.create({username:'user01',password:'123456'},function(err,userBefore){
+        should(err).not.be.ok;
+
+        User.findOrCreate({username:'user01',password:'xyz'},true,function(err,userAfter){
+          should(err).not.be.ok;
+          should(userAfter).be.ok;
+
+          userBefore.password.should.not.eql(userAfter.password);
+
+          userAfter.comparePassword('xyz',function(e,result){
+            result.should.eql(true);
+            done();
+          });
+        });
+      });
+
+    });
+
+    it('finds user and does not overwrite its password as it it the same', function (done) {
+
+      User.create({username:'userXX',password:'123456'},function(err,userBefore){
+        should(err).not.be.ok;
+
+        User.findOrCreate({username:'userXX',password:'123456'},true,function(err,userAfter){
+          should(err).not.be.ok;
+          should(userAfter).be.ok;
+
+          userBefore.password.should.eql(userAfter.password);
+
+          userAfter.comparePassword('123456',function(e,result){
+            result.should.eql(true);
+            done();
+          });
+        });
+      });
+
+    });
+
+  });
+
 });

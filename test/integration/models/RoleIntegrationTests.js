@@ -30,7 +30,7 @@ describe('Role schema integration tests', function () {
       });
     });
 
-    it('requires must be unique', function (done) {
+    it('must be unique', function (done) {
       Role.create({authority:'abc'},function(err,doc){
         should(err).not.be.ok;
         Role.create({authority:'abc'},function(errr){
@@ -40,6 +40,52 @@ describe('Role schema integration tests', function () {
           done();
         });
       });
+    });
+
+  });
+
+  describe('static method findOrCreate', function () {
+
+    it('returns error as authority cannot be null', function (done) {
+      Role.findOrCreate(null,function(err,role){
+        should(err).have.property('name', 'ValidationError');
+        should(err).have.property('message', 'Validation failed');
+        should(err.errors.authority).have.property('path', 'authority');
+        should(err.errors.authority).have.property('type', 'required');
+        should(err.errors.authority).have.property('value', null);
+        done();
+      });
+    });
+
+    it('creates nonexistent role', function (done) {
+      Role.findOrCreate('doesnotexist',function(err,role){
+        should(err).not.be.ok;
+        should(role).be.ok;
+        role.authority.should.eql('doesnotexist');
+        done();
+      });
+    });
+
+    it('finds existing role', function (done) {
+
+      Role.create({authority:'existing'},function(err,doc){
+        should(err).not.be.ok;
+
+        Role.find(function(err1,rolesBefore){
+
+          Role.findOrCreate('existing',function(err,role){
+            should(err).not.be.ok;
+            should(role).be.ok;
+            role.authority.should.eql('existing');
+
+            Role.find(function(err2,rolesAfter){
+              rolesBefore.length.should.eql(rolesAfter.length);
+              done();
+            })
+          });
+        });
+      });
+
     });
 
   });
