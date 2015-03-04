@@ -7,20 +7,19 @@ var
   child
 ;
 
+function bearerFromToken(t){
+  return 'Bearer ' + t;
+}
+
 function findUser(username){
   var deferred = q.defer();
-
-  console.log('searching for',username)
 
   MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
     if(err) return deferred.reject(err);
     var user = db.collection('datadump_user');
     var pattern = new RegExp('^'+username+'$');
 
-    console.log('whithin collection',user.collectionName)
-
     user.find({username:pattern}).toArray(function(err,users){
-      console.log('found',users)
       if(users && users.length > 1)
         deferred.reject('Too many users found');
       else if(users && users.length == 1)
@@ -47,7 +46,7 @@ function saveBucket(data){
   return deferred.promise;
 }
 
-describe('Bucket API functional tests', function () {
+describe('Bucket API', function () {
 
   before(function(done){
     this.timeout(4000);
@@ -85,112 +84,286 @@ describe('Bucket API functional tests', function () {
     return deferred.promise;
   }
 
-  describe('Anonymous access', function () {
+  /*
+  describe('list', function () {
 
-    var bucket;
-    var user;
+    describe('having anonymous access', function () {
+      it('returns public buckets on guest path', function(done){});
+      it('returns 401 on me path', function(done){});
+      it('returns 401 on user path', function(done){});
+      it('returns 401 on admin path', function(done){});
+    });
+
+    describe('having user access', function () {
+      it('returns public buckets on guest path', function(done){});
+      it('returns my buckets on me path', function(done){});
+      it('returns my buckets on my user path', function(done){});
+      it('returns 403 on not my user path', function(done){});
+      it('returns 403 on admin path', function(done){});
+    });
+
+    describe('having admin access', function () {
+      it('returns public buckets on guest path', function(done){});
+      it('returns admin buckets on me path', function(done){});
+      it('returns any user buckets on user path', function(done){});
+      it('returns all buckets on admin path', function(done){});
+    });
+
+  });
+
+  */
+
+  describe('show', function () {
+
+    var tmp = {};
 
     before(function(done){
+      this.timeout(5000);
 
-      console.log("before hook")
+      function setupUserData(username, cache){
+        return findUser(username)
+          .then(function(u){
+            cache[username] = {};
+            cache[username].user = u;
+            return setupUserBuckets(u);
+          }).then(function(buckets){
+            cache[username].publicBucket = buckets[0];
+            cache[username].privateBucket = buckets[1];
+          })
+      }
 
-      this.timeout(10000);
-      findUser('user')
-        .then(function(u){
-          user = u;
-          return saveBucket({
+      function setupUserBuckets(user){
+        return q.all([
+          saveBucket({
             user:user._id,
             description:'public bucket',
-            path:'user-specific-path',
+            path:'user-specific-public-path',
             isPublic: true
-          });
-        })
-        .catch(function (error) {
-          console.log("error",error)
-        })
-        .done(function(b){
-          bucket = b;
-          done();
-        });
+          }),
+          saveBucket({
+            user:user._id,
+            description:'private bucket',
+            path:'user-specific-private-path',
+            isPublic: false
+          })
+        ])
+      }
+
+      var operations = [];
+      ['user','jane','tom','billy'].forEach(function(username){
+        operations.push(setupUserData(username, tmp))
+      });
+
+      q.all(operations).then(function(){
+        done()
+      });
     });
 
     after(function(done){
-      // TODO: drop bucket for user u
+      // TODO: drop data ?
       done();
     });
 
-    it('shows public bucket on guest path', function(done){
-      request
-        .get('http://localhost:8080/api/v1/user/guest/bucket/'+bucket._id)
-        .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
-          res.status.should.eql(200);
-          res.body.data._id.should.eql(bucket._id.toString())
-          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
-          res.body.data.description.should.eql(bucket.description)
-          res.body.data.isPublic.should.eql(bucket.isPublic)
-          res.body.data.path.should.eql(bucket.path)
-          res.body.data.user.should.eql(user._id.toString())
-          done();
-        });
-    });
-    it('shows public bucket on me path', function(done){
-      request
-        .get('http://localhost:8080/api/v1/user/me/bucket/'+bucket._id)
-        .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
-          res.status.should.eql(200);
-          res.body.data._id.should.eql(bucket._id.toString())
-          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
-          res.body.data.description.should.eql(bucket.description)
-          res.body.data.isPublic.should.eql(bucket.isPublic)
-          res.body.data.path.should.eql(bucket.path)
-          res.body.data.user.should.eql(user._id.toString())
-          done();
-        });
-    });
-    it('shows public bucket on user path', function(done){
-      request
-        .get('http://localhost:8080/api/v1/user/'+user._id.toString()+'/bucket/'+bucket._id.toString())
-        .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
-          res.status.should.eql(200);
-          res.body.data._id.should.eql(bucket._id.toString())
-          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
-          res.body.data.description.should.eql(bucket.description)
-          res.body.data.isPublic.should.eql(bucket.isPublic)
-          res.body.data.path.should.eql(bucket.path)
-          res.body.data.user.should.eql(user._id.toString())
-          done();
-        });
-    });
-    it('shows public bucket on admin path', function(done){
-      request
-        .get('http://localhost:8080/api/v1/user/admin/bucket/'+bucket._id)
-        .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
-          res.status.should.eql(200);
-          res.body.data._id.should.eql(bucket._id.toString())
-          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
-          res.body.data.description.should.eql(bucket.description)
-          res.body.data.isPublic.should.eql(bucket.isPublic)
-          res.body.data.path.should.eql(bucket.path)
-          res.body.data.user.should.eql(user._id.toString())
-          done();
-        });
+    describe('having anonymous access', function () {
+
+      it('returns public bucket on guest path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.user.publicBucket._id)
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(200);
+            res.body.data._id.should.eql(tmp.user.publicBucket._id.toString())
+            new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
+            res.body.data.description.should.eql(tmp.user.publicBucket.description)
+            res.body.data.isPublic.should.eql(tmp.user.publicBucket.isPublic)
+            res.body.data.path.should.eql(tmp.user.publicBucket.path)
+            res.body.data.user.should.eql(tmp.user.user._id.toString())
+            done();
+          });
+      });
+      it('returns 404 on guest path as bucket is not public', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.user.privateBucket._id)
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(404);
+            done();
+          });
+      })
+      it('returns 401 on me path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/me/bucket/'+tmp.user.publicBucket._id)
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(401);
+            done();
+          });
+      });
+      it('returns 401 on user path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/'+tmp.user.user._id.toString()+'/bucket/'+tmp.user.publicBucket._id.toString())
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(401);
+            done();
+          });
+      });
+      it('returns 401 on admin path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/admin/bucket/'+tmp.user.publicBucket._id)
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(401);
+            done();
+          });
+      });
+
     });
 
-    it('returns 404 for private bucket on guest path', function(done){});
-    it('returns 403 for private bucket on me path', function(done){});
-    it('returns 403 for private bucket on user path', function(done){});
-    it('returns 403 for private bucket on admin path', function(done){});
-  });
+    describe('having user access', function () {
 
-  describe('Authenticated user access', function () {});
-  describe('Admin user access', function () {});
+      var token;
+
+      before(function(done){
+        getUserToken().then(function(t){
+          token = t;
+          done();
+        })
+      });
+
+      it('returns public bucket on guest path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.jane.publicBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(200);
+            res.body.data._id.should.eql(tmp.jane.publicBucket._id.toString())
+            done();
+          });
+      })
+      it('returns my public bucket on guest path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.user.publicBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(200);
+            res.body.data._id.should.eql(tmp.user.publicBucket._id.toString())
+            done();
+          });
+      })
+      it('returns 404 on guest path as bucket is not public', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.jane.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(404);
+            done();
+          });
+      })
+      it('returns 404 on guest path as my bucket is not public', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.user.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(404);
+            done();
+          });
+      })
+
+      it('returns my bucket on me path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/me/bucket/'+tmp.user.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(200);
+            res.body.data._id.should.eql(tmp.user.privateBucket._id.toString())
+            done();
+          });
+      })
+      it('returns 404 on me path as bucket does not exist', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/me/bucket/'+tmp.jane.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(404);
+            done();
+          });
+      })
+
+      it('returns my bucket on my id path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/'+tmp.user.user._id.toString()+'/bucket/'+tmp.user.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(200);
+            res.body.data._id.should.eql(tmp.user.privateBucket._id.toString())
+            done();
+          });
+      })
+      it('returns 404 on my id path as bucket does not exist', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/'+tmp.user.user._id.toString()+'/bucket/'+tmp.jane.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(404);
+            done();
+          });
+      })
+      it('returns 403 on other user id path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/'+tmp.jane.user._id.toString()+'/bucket/'+tmp.jane.privateBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(403);
+            done();
+          });
+      })
+
+      it('returns 403 on admin path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/admin/bucket/'+tmp.jane.publicBucket._id)
+          .set('Authorization', bearerFromToken(token))
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            res.status.should.eql(403);
+            done();
+          });
+      })
+    });
+
+    describe('having admin access', function () {
+      it('returns public bucket on guest path', function(done){})
+      it('returns my admin public bucket on guest path', function(done){})
+      it('returns 404 on guest path as bucket is not public', function(done){})
+      it('returns 404 on guest path as my admin bucket is not public', function(done){})
+
+      it('returns my admin bucket on me path', function(done){})
+      it('returns 404 on me path as bucket does not exist', function(done){})
+      it('returns 404 on me path as bucket does not belong to admin', function(done){})
+
+      it('returns my admin bucket on my id path', function(done){})
+      it('returns other bucket on my id path', function(done){})
+      it('returns 404 on my id path as bucket does not exist', function(done){})
+
+      it('returns my admin bucket on admin path', function(done){})
+      it('returns public bucket on admin path', function(done){})
+      it('returns private bucket on admin path', function(done){})
+      it('returns 404 on admin path as bucket does not exist', function(done){})
+    });
+  })
 
 });

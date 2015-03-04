@@ -27,15 +27,15 @@ exports.init = function () {
 
   if('test' === environment){
     mongoose.connection.db.dropDatabase();
-    return createRoles().then(createTestUsers);
+    return prepareRoles().then(prepareTestUsers);
   }
 
-  return createRoles().then(createUsers);
+  return prepareRoles().then(prepareUsers);
 
   // HELPER METHODS
   //////////////////////////
 
-  function createRoles(){
+  function prepareRoles(){
     console.log('creating roles');
     return q.all([
       q.ninvoke(Role, 'findOrCreate', 'ROLE_USER'),
@@ -43,18 +43,18 @@ exports.init = function () {
     ])
   }
 
-  function createUsers(roles){
+  function prepareUsers(roles){
     console.log('creating users with roles:', roles);
     return q.all([
       createSuperAdminUser(roles)
     ]);
   }
 
-  function createTestUsers(roles){
+  function prepareTestUsers(roles){
     console.log('creating users with roles:', roles);
     return q.all([
       createSuperAdminUser(roles),
-      createTestUser(roles)
+      createTestUsers(roles)
     ]);
   }
 
@@ -76,13 +76,18 @@ exports.init = function () {
     return q.ninvoke(User, 'findOrCreate', superadmin, true);
   }
 
-  function createTestUser(roles){
-    console.log('setting up test user');
+  function createTestUsers(roles){
+    console.log('setting up test users');
     var role = roles[0];
     if('ROLE_USER' !== role.authority){
       throw new Error('Expecting user role')
     }
-    var user = { username:'user', password:'user', authorities:[role._id], enabled:true };
-    return q.ninvoke(User, 'findOrCreate', user, true);
+
+    return q.all([
+      q.ninvoke(User, 'findOrCreate', { username:'user', password:'user', authorities:[role._id], enabled:true }, true),
+      q.ninvoke(User, 'findOrCreate', { username:'jane', password:'jane', authorities:[role._id], enabled:true }, true),
+      q.ninvoke(User, 'findOrCreate', { username:'tom', password:'tom', authorities:[role._id], enabled:true }, true),
+      q.ninvoke(User, 'findOrCreate', { username:'billy', password:'billy', authorities:[role._id], enabled:true }, true)
+    ])
   }
 };
