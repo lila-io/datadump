@@ -16,7 +16,7 @@ describe('Authentication functional tests', function () {
       if( /Listening on port 8080/.test(data) ){
         done();
       } else {
-      console.log(">>>> data: ",data)
+        //console.log(">>>> data: ",data)
       }
     });
   });

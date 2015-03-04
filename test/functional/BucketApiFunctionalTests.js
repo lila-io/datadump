@@ -7,18 +7,47 @@ var
   child
 ;
 
-function cleanupRestrictions(){
-  'use strict';
+function findUser(username){
   var deferred = q.defer();
+
+  console.log('searching for',username)
+
   MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
     if(err) return deferred.reject(err);
-    db.collection('datadump_login_attempt').drop();
-    deferred.resolve();
+    var user = db.collection('datadump_user');
+    var pattern = new RegExp('^'+username+'$');
+
+    console.log('whithin collection',user.collectionName)
+
+    user.find({username:pattern}).toArray(function(err,users){
+      console.log('found',users)
+      if(users && users.length > 1)
+        deferred.reject('Too many users found');
+      else if(users && users.length == 1)
+        deferred.resolve(users[0]);
+      else
+        deferred.resolve(null);
+    })
   });
   return deferred.promise;
 }
 
-describe('Authentication functional tests', function () {
+function saveBucket(data){
+  var deferred = q.defer();
+  MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
+    if(err) return deferred.reject(err);
+    var bucket = db.collection('datadump_bucket');
+    bucket.save(data,function(err,doc){
+      if(err)
+        deferred.reject(err);
+      else
+        deferred.resolve(doc);
+    })
+  });
+  return deferred.promise;
+}
+
+describe('Bucket API functional tests', function () {
 
   before(function(done){
     this.timeout(4000);
@@ -27,9 +56,12 @@ describe('Authentication functional tests', function () {
       if( /Listening on port 8080/.test(data) ){
         done();
       } else {
-      console.log(">>>> data: ",data)
+        //console.log(">>>> data: ",data)
       }
     });
+    setTimeout(function(){
+      if(child) child.kill();
+    },60000);
   });
 
   after(function(done){
@@ -37,209 +69,128 @@ describe('Authentication functional tests', function () {
     done();
   });
 
-  describe('Superadmin login', function () {
+  function getUserToken(){
+    'use strict';
+    var deferred = q.defer();
+    request
+      .post('http://localhost:8080/api/auth/login')
+      .send({ username: 'user', password: 'user' })
+      .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+      .end(function(err, res){
+        should.not.exist(err);
+        should.exist(res.body.token);
+        res.status.should.eql(200);
+        deferred.resolve(res.body.token);
+      });
+    return deferred.promise;
+  }
 
-    it('fails with 400 as no data sent', function (done) {
+  describe('Anonymous access', function () {
 
+    var bucket;
+    var user;
+
+    before(function(done){
+
+      console.log("before hook")
+
+      this.timeout(10000);
+      findUser('user')
+        .then(function(u){
+          user = u;
+          return saveBucket({
+            user:user._id,
+            description:'public bucket',
+            path:'user-specific-path',
+            isPublic: true
+          });
+        })
+        .catch(function (error) {
+          console.log("error",error)
+        })
+        .done(function(b){
+          bucket = b;
+          done();
+        });
+    });
+
+    after(function(done){
+      // TODO: drop bucket for user u
+      done();
+    });
+
+    it('shows public bucket on guest path', function(done){
       request
-        .post('http://localhost:8080/api/auth/login')
-        .send({})
+        .get('http://localhost:8080/api/v1/user/guest/bucket/'+bucket._id)
         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
         .end(function(err, res){
           should.not.exist(err);
-          res.text.should.containEql('username and password are required');
-          res.status.should.eql(400);
+          res.status.should.eql(200);
+          res.body.data._id.should.eql(bucket._id.toString())
+          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
+          res.body.data.description.should.eql(bucket.description)
+          res.body.data.isPublic.should.eql(bucket.isPublic)
+          res.body.data.path.should.eql(bucket.path)
+          res.body.data.user.should.eql(user._id.toString())
           done();
         });
-
     });
-
-    it('fails with 400 as username/password is blank', function (done) {
-
+    it('shows public bucket on me path', function(done){
       request
-        .post('http://localhost:8080/api/auth/login')
-        .send({ username: '', password: '' })
+        .get('http://localhost:8080/api/v1/user/me/bucket/'+bucket._id)
         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
         .end(function(err, res){
           should.not.exist(err);
-          res.text.should.containEql('username and password are required');
-          res.status.should.eql(400);
+          res.status.should.eql(200);
+          res.body.data._id.should.eql(bucket._id.toString())
+          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
+          res.body.data.description.should.eql(bucket.description)
+          res.body.data.isPublic.should.eql(bucket.isPublic)
+          res.body.data.path.should.eql(bucket.path)
+          res.body.data.user.should.eql(user._id.toString())
           done();
         });
-
     });
-
-    it('fails with 400 as username/password is invalid', function (done) {
-
+    it('shows public bucket on user path', function(done){
       request
-        .post('http://localhost:8080/api/auth/login')
-        .send({ username: 'ho', password: 'hey' })
+        .get('http://localhost:8080/api/v1/user/'+user._id.toString()+'/bucket/'+bucket._id.toString())
         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
         .end(function(err, res){
           should.not.exist(err);
-          res.text.should.containEql('Username and password combination not found');
-          res.status.should.eql(400);
+          res.status.should.eql(200);
+          res.body.data._id.should.eql(bucket._id.toString())
+          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
+          res.body.data.description.should.eql(bucket.description)
+          res.body.data.isPublic.should.eql(bucket.isPublic)
+          res.body.data.path.should.eql(bucket.path)
+          res.body.data.user.should.eql(user._id.toString())
           done();
         });
-
+    });
+    it('shows public bucket on admin path', function(done){
+      request
+        .get('http://localhost:8080/api/v1/user/admin/bucket/'+bucket._id)
+        .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+        .end(function(err, res){
+          should.not.exist(err);
+          res.status.should.eql(200);
+          res.body.data._id.should.eql(bucket._id.toString())
+          new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
+          res.body.data.description.should.eql(bucket.description)
+          res.body.data.isPublic.should.eql(bucket.isPublic)
+          res.body.data.path.should.eql(bucket.path)
+          res.body.data.user.should.eql(user._id.toString())
+          done();
+        });
     });
 
-    it('locks out the user after 7 attempts', function (done) {
-
-      this.timeout(4000);
-
-      function invalidLogin(status,msg){
-        'use strict';
-        var deferred = q.defer();
-        request
-          .post('http://localhost:8080/api/auth/login')
-          .send({ username: 'ho', password: 'hey' })
-          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
-            res.text.should.containEql(msg);
-            res.status.should.eql(status);
-            deferred.resolve();
-          });
-        return deferred.promise;
-      }
-
-      cleanupRestrictions()
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'reached the maximum number of login attempts')})
-        .then(function(){ return invalidLogin(400, 'reached the maximum number of login attempts')})
-        .then(function(){ return cleanupRestrictions() })
-        .done(function(){ done() });
-    });
-
-    it('locks out the ip address after 50 attempts', function (done) {
-
-      this.timeout(4000);
-
-      function invalidLogin(status,msg){
-        'use strict';
-        var deferred = q.defer();
-        var username = 'invalid_' + Math.floor(Math.random() * 1000);
-        request
-          .post('http://localhost:8080/api/auth/login')
-          .send({ username: username, password: 123456789 })
-          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
-            res.text.should.containEql(msg);
-            res.status.should.eql(status);
-            deferred.resolve();
-          });
-        return deferred.promise;
-      }
-
-      cleanupRestrictions()
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-        .then(function(){ return invalidLogin(400, 'Username and password combination not found')})
-
-        .then(function(){ return invalidLogin(400, 'reached the maximum number of login attempts')})
-        .then(function(){ return invalidLogin(400, 'reached the maximum number of login attempts')})
-        .then(function(){ return cleanupRestrictions() })
-        .done(function(){ done() });
-    });
-
-    it('authentication succeeds and returns valid auth token', function (done) {
-
-      function getToken(){
-        'use strict';
-        var deferred = q.defer();
-        request
-          .post('http://localhost:8080/api/auth/login')
-          .send({ username: 'superadmin', password: 'superadmin' })
-          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
-            should.exist(res.body.token);
-            res.status.should.eql(200);
-            deferred.resolve(res.body.token);
-          });
-        return deferred.promise;
-      }
-
-      function useToken(token){
-        'use strict';
-        var deferred = q.defer();
-        var authHeaderValue = 'Bearer ' + token;
-        request
-          .get('http://localhost:8080/api/v1/user/me/admin')
-          .set('Authorization', authHeaderValue)
-          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
-            res.status.should.eql(200);
-            deferred.resolve();
-          });
-        return deferred.promise;
-      }
-
-      getToken()
-        .then(function(t){ return useToken(t) })
-        .done(function(){ done() });
-    });
-
+    it('returns 404 for private bucket on guest path', function(done){});
+    it('returns 403 for private bucket on me path', function(done){});
+    it('returns 403 for private bucket on user path', function(done){});
+    it('returns 403 for private bucket on admin path', function(done){});
   });
+
+  describe('Authenticated user access', function () {});
+  describe('Admin user access', function () {});
 
 });
