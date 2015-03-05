@@ -1,5 +1,4 @@
 {
-
   "name": "datadump",
   "version": "1.0.0",
   "private": true,
@@ -10,9 +9,7 @@
   },
 
   "scripts": {
-
     "start": "node server.js",
-
     "lint": "./node_modules/.bin/jshint server.js server/*",
     "pretest": "rm -rf coverage && npm run-script lint",
     "test": "./node_modules/.bin/istanbul -v -x=server.js -x=client/** -x=server/conf/** --preload-sources cover ./node_modules/.bin/_mocha -- --recursive -R spec -r should",
@@ -21,22 +18,15 @@
 
   "dependencies": {
     "express": "4.x",
-    "express-session": "*",
-    "connect-mongo": "*",
     "serve-favicon": "*",
-    "cookie-parser": "*",
     "body-parser": "*",
     "compression": "*",
-    "csurf": "*",
     "method-override": "*",
     "morgan": "*",
     "serve-static": "*",
     "ejs": "*",
-    "aws-sdk": "~2.*",
-    "superagent": "*",
-    "google-oauth-jwt": "0.1",
-    "mongodb": "1.4",
-    "mongoose": "~3.*",
+    "mongodb": "2.0.*",
+    "mongoose": "3.8.*",
     "passport": "*",
     "passport-local": "*",
     "passport-http-bearer": "*",
@@ -50,8 +40,7 @@
     "async": "*",
     "underscore": "*",
     "q": "~1.0.1",
-    "URIjs": "~1.*",
-    "mongoose-text-search": "0.0.2"
+    "URIjs": "~1.*"
   },
 
   "devDependencies": {
@@ -62,6 +51,6 @@
     "should": "*",
     "rewire": "*",
     "supertest": "*",
-    "sinon": "*"
+    "superagent": "*"
   }
 }

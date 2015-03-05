@@ -25,11 +25,17 @@ app.set('views', __dirname + config.staticFilesDir);
 app.engine('.html', ejs.__express);
 app.set('view engine', 'html');
 app.use(favicon( path.join( __dirname, config.staticFilesDir, 'favicon.ico'), { maxAge: config.expires.year } ));
-if(app.get('env') === 'development'){
+if(app.get('env') === 'development' || app.get('env') === 'test'){
   app.use(logger('dev'));
+} else if(app.get('env') === 'production') {
+  app.use(logger('combined', {
+    // remove status codes below 400 from log
+    skip: function (req, res) { return res.statusCode < 400 }
+  }));
 }
+// compress response with zlib if required
 app.use(compress());
-// handle json payloads
+// accept request with json payloads
 app.use(bodyParser.json());
 // handle static files TODO: switch to nginx in production
 app.use( serveStatic( path.join(__dirname, config.staticFilesDir), { maxAge: config.expires.year } ));

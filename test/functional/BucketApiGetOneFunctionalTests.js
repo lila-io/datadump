@@ -26,6 +26,8 @@ function findUser(username){
         deferred.resolve(users[0]);
       else
         deferred.resolve(null);
+
+      db.close();
     })
   });
   return deferred.promise;
@@ -36,11 +38,11 @@ function saveBucket(data){
   MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
     if(err) return deferred.reject(err);
     var bucket = db.collection('datadump_bucket');
-    bucket.save(data,function(err,doc){
+    bucket.insertOne(data,function(err,result){
       if(err)
         deferred.reject(err);
       else
-        deferred.resolve(doc);
+        deferred.resolve(result.ops[0]);
     })
   });
   return deferred.promise;

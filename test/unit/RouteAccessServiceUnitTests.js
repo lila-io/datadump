@@ -110,6 +110,16 @@ describe('bucket router helper method', function () {
       done();
     });
 
+    it('returns true if ids match when resource user is just id', function (done) {
+      service.isSelf({_id:123},{user:123}).should.eql(true);
+      done();
+    });
+
+    it('returns true after ids are coerced into strings', function (done) {
+      service.isSelf({_id:'123'},{user:123}).should.eql(true);
+      done();
+    });
+
   });
 
   describe('isOwnPath()', function () {
@@ -167,33 +177,63 @@ describe('bucket router helper method', function () {
 
   describe('isResourceHidden()', function () {
 
-    it('returns true if no arguments', function (done) {
+    it('hides if no arguments', function (done) {
       service.isResourceHidden().should.eql(true);
       done();
     });
 
-    it('returns true if no bucket', function (done) {
+    it('hides if no bucket', function (done) {
       service.isResourceHidden({_id:123},'me',null).should.eql(true);
       done();
     });
 
-    it('returns false for public bucket', function (done) {
-      service.isResourceHidden({_id:123},'me',{isPublic:true}).should.eql(false);
+    it('always shows public bucket', function (done) {
+      service.isResourceHidden({_id:123},'me',{isPublic:true,user:321}).should.eql(false);
       done();
     });
 
-    it('returns false for non anonymous user', function (done) {
-      service.isResourceHidden({_id:123},'me',{isPublic:false}).should.eql(false);
+    it('hides private bucket on guest path', function (done) {
+      service.isResourceHidden({_id:123},'guest',{isPublic:false, user:123}).should.eql(true);
       done();
     });
 
-    it('returns true for anonymous on guest path', function (done) {
-      service.isResourceHidden({},'guest',{isPublic:false}).should.eql(true);
+    it('hides private bucket on guest path for admin', function (done) {
+      service.isResourceHidden({_id:123, isAdmin:true},'guest',{isPublic:false}).should.eql(true);
       done();
     });
 
-    it('returns false for anonymous on non guest path', function (done) {
-      service.isResourceHidden({},'any',{isPublic:false}).should.eql(false);
+    it('hides private bucket on me path when user is not the owner', function (done) {
+      service.isResourceHidden({_id:123},'me',{isPublic:false, user:321}).should.eql(true);
+      done();
+    });
+
+    it('shows private bucket on me path when user is the owner', function (done) {
+      service.isResourceHidden({_id:123},'me',{isPublic:false, user:123}).should.eql(false);
+      done();
+    });
+
+    it('hides private bucket on me path when admin is not the owner', function (done) {
+      service.isResourceHidden({_id:123, isAdmin:true},'me',{isPublic:false, user:321}).should.eql(true);
+      done();
+    });
+
+    it('shows private bucket on me path when admin is the owner', function (done) {
+      service.isResourceHidden({_id:123, isAdmin:true},'me',{isPublic:false, user:123}).should.eql(false);
+      done();
+    });
+
+    it('shows private bucket on user path', function (done) {
+      service.isResourceHidden({_id:123},'user',{isPublic:false,user:321}).should.eql(false);
+      done();
+    });
+
+    it('shows private bucket on admin path', function (done) {
+      service.isResourceHidden({_id:123},'admin',{isPublic:false,user:321}).should.eql(false);
+      done();
+    });
+
+    it('shows private bucket on other paths', function (done) {
+      service.isResourceHidden({_id:123},'anyOtherPathType',{isPublic:false,user:321}).should.eql(false);
       done();
     });
 
@@ -201,48 +241,62 @@ describe('bucket router helper method', function () {
 
   describe('hasAccess()', function () {
 
-    it('returns false if no arguments', function (done) {
+    it('NO if no arguments', function (done) {
       service.hasAccess().should.eql(false);
       done();
     });
 
-    it('returns false if all are empty', function (done) {
+    it('NO if arguments are empty', function (done) {
       service.hasAccess({},'',{}).should.eql(false);
       done();
     });
 
-    it('returns true for public bucket', function (done) {
+    it('YES for public bucket', function (done) {
       service.hasAccess({},'',{isPublic:true}).should.eql(true);
       done();
     });
 
-    it('returns true for admin', function (done) {
+    it('YES for admin', function (done) {
       service.hasAccess({_id:123,isAdmin:true},'',{isPublic:false}).should.eql(true);
       done();
     });
 
-    it('returns false when path access type is not set', function (done) {
+    it('NO when path access type is not set', function (done) {
       service.hasAccess({_id:123},'',{isPublic:false}).should.eql(false);
       done();
     });
 
-    it('returns false when path access type is not me,user,guest', function (done) {
-      service.hasAccess({_id:123},'admin',{isPublic:false,user:{_id:123}}).should.eql(false);
-      service.hasAccess({_id:123},'bla',{isPublic:false,user:{_id:123}}).should.eql(false);
-      done();
-    });
-
-    it('returns true when path access type is in me,user,guest', function (done) {
-      service.hasAccess({_id:123},'me',{isPublic:false,user:{_id:123}}).should.eql(true);
-      service.hasAccess({_id:123},'guest',{isPublic:false,user:{_id:123}}).should.eql(true);
-      service.hasAccess({_id:123},'user',{isPublic:false,user:{_id:123}}).should.eql(true);
-      done();
-    });
-
-    it('returns false if not own resource', function (done) {
-      service.hasAccess({_id:123},'me',{isPublic:false,user:{_id:321}}).should.eql(false);
+    it('NO when user is not the owner', function (done) {
       service.hasAccess({_id:123},'guest',{isPublic:false,user:{_id:321}}).should.eql(false);
+      service.hasAccess({_id:123},'me',{isPublic:false,user:{_id:321}}).should.eql(false);
       service.hasAccess({_id:123},'user',{isPublic:false,user:{_id:321}}).should.eql(false);
+      service.hasAccess({_id:123},'admin',{isPublic:false,user:{_id:321}}).should.eql(false);
+      service.hasAccess({_id:123},'anyOther',{isPublic:false,user:{_id:321}}).should.eql(false);
+      done();
+    });
+
+    it('NO when owner on guest path', function (done) {
+      service.hasAccess({_id:123},'guest',{isPublic:false,user:{_id:123}}).should.eql(false);
+      done();
+    });
+
+    it('NO when owner on admin path', function (done) {
+      service.hasAccess({_id:123},'admin',{isPublic:false,user:{_id:123}}).should.eql(false);
+      done();
+    });
+
+    it('NO when owner on unrecognized path', function (done) {
+      service.hasAccess({_id:123},'unrecognized',{isPublic:false,user:{_id:123}}).should.eql(false);
+      done();
+    });
+
+    it('YES when owner on me path', function (done) {
+      service.hasAccess({_id:123},'me',{isPublic:false,user:{_id:123}}).should.eql(true);
+      done();
+    });
+
+    it('YES when owner on user id path', function (done) {
+      service.hasAccess({_id:123},'user',{isPublic:false,user:{_id:123}}).should.eql(true);
       done();
     });
 
