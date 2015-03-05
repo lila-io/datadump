@@ -15,8 +15,10 @@ RoutePathAccess.prototype.isAdmin = function (u){
 }
 
 RoutePathAccess.prototype.isSelf = function (authUser,item){
-  if(this.isUser(authUser) && item && this.isUser(item.user))
+  if(this.isUser(authUser) && item != null && this.isUser(item.user))
     return authUser._id === item.user._id;
+  else if(this.isUser(authUser) && item != null && !this.isUser(item.user))
+    return (authUser._id + '') === (item.user + '');
   return false;
 }
 
@@ -35,7 +37,8 @@ RoutePathAccess.prototype.hasPathAccess = function (authUser,pathUser){
 RoutePathAccess.prototype.isResourceHidden = function (authUser,pathUserType,item){
   if(!item) return true;
   else if(item.isPublic) return false;
-  else if( this.isAnonymous(authUser) && pathUserType === UrlAccessType.GUEST ) return true;
+  else if( pathUserType === UrlAccessType.GUEST ) return true;
+  else if( pathUserType === UrlAccessType.ME && !this.isSelf(authUser,item) ) return true;
   else return false;
 }
 
@@ -44,10 +47,9 @@ RoutePathAccess.prototype.hasAccess = function (authUser,pathUserType,item){
   /* jshint maxcomplexity:10 */
 
   if(!item) return false;
-  else if(item.isPublic || this.isAdmin(authUser)) return true;
-  else if( this.isUser(authUser) &&
-    (pathUserType === UrlAccessType.GUEST || pathUserType === UrlAccessType.ME || pathUserType === UrlAccessType.USER) &&
-    this.isSelf(authUser,item))
+  else if(item.isPublic) return true;
+  else if(this.isAdmin(authUser)) return true;
+  else if( this.isSelf(authUser,item) && (pathUserType === UrlAccessType.ME || pathUserType === UrlAccessType.USER) )
     return true;
   else return false;
 }

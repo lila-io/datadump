@@ -33,6 +33,8 @@ exports.findOne = function(itemId, ownerId, cb){
 
   query.exec(function(err,item){
     if(err != null){
+      if(err.name === 'CastError')
+        return cb(null,null);
       return cb(err);
     }
     cb(null,item);

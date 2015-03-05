@@ -22,33 +22,13 @@ var authAllowUser = function(req,res,next){
 
 router.use(authAllowAll);
 
-/** SHOW item accessibility
- |----------------+----------+--------------+----------+------------+-------------|
- | authentication | pathUser | resourceUser | isPublic | has access | HTTP status |
- |----------------+----------+--------------+----------+------------+-------------|
- | *              | *        | *            | YES      | TRUE       | 200         |
- |----------------+----------+--------------+----------+------------+-------------|
- | anonymous      | guest    | *            | NO       | FALSE      | 404         |
- | anonymous      | me       | *            | NO       | FALSE      | 403         |
- | anonymous      | admin    | *            | NO       | FALSE      | 403         |
- | anonymous      | user     | *            | NO       | FALSE      | 403         |
- |----------------+----------+--------------+----------+------------+-------------|
- | user           | guest    | user         | NO       | FALSE      | 403         |
- | user           | guest    | self         | NO       | TRUE       | 200         |
- | user           | me       | user         | NO       | FALSE      | 403         |
- | user           | me       | self         | NO       | TRUE       | 200         |
- | user           | admin    | *            | NO       | FALSE      | 403         |
- | user           | user     | user         | NO       | FALSE      | 403         |
- | user           | user     | self         | NO       | TRUE       | 200         |
- |----------------+----------+--------------+----------+------------+-------------|
- | admin          | *        | *            | NO       | TRUE       | 200         |
- |----------------+----------+--------------+----------+------------+-------------|
- */
-
 router.get('/:id', function (req, res) {
 
   var itemId = req.params.id;
   var userId = ras.resourceOwnerId(req);
+  if(ras.isAdmin(req.user)) {
+    userId = null;
+  }
 
   bucketService.findOne(itemId, userId, function (err, item) {
     if (err != null) {
