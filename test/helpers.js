@@ -39,6 +39,30 @@ exports.stopServer = function(process, cb){
   cb();
 };
 
+exports.prepareBuckets = function(cache){
+  'use strict';
+  var usernames = ['user', 'jane', 'tom', 'billy', 'superadmin'];
+  var operations = [];
+
+  usernames.forEach(function(username){
+    operations.push(exports.setupUserData(username, cache))
+  });
+
+  return q.all(operations);
+}
+
+exports.dropBuckets = function(){
+  'use strict';
+  var usernames = ['user', 'jane', 'tom', 'billy', 'superadmin'];
+  var operations = [];
+
+  usernames.forEach(function(username){
+    operations.push(exports.dropUserData(username))
+  });
+
+  return q.all(operations);
+}
+
 exports.cleanupRestrictions = function(){
   'use strict';
   var deferred = q.defer();
@@ -109,6 +133,25 @@ exports.findUser = function(username){
   return deferred.promise;
 }
 
+exports.findUserBuckets = function(userId){
+  var deferred = q.defer();
+
+  MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
+    if(err) return deferred.reject(err);
+    var bucket = db.collection('datadump_bucket');
+
+    bucket.find({user:userId}).toArray(function(err,buckets){
+      if(buckets)
+        deferred.resolve(buckets);
+      else
+        deferred.resolve(null);
+
+      db.close();
+    })
+  });
+  return deferred.promise;
+}
+
 exports.saveBucket = function(data){
   var deferred = q.defer();
   MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
@@ -119,6 +162,23 @@ exports.saveBucket = function(data){
         deferred.reject(err);
       else
         deferred.resolve(result.ops[0]);
+
+      db.close();
+    })
+  });
+  return deferred.promise;
+}
+
+exports.deleteBucket = function(bucketId){
+  var deferred = q.defer();
+  MongoClient.connect('mongodb://localhost/test_db', function(err, db) {
+    if(err) return deferred.reject(err);
+    var bucket = db.collection('datadump_bucket');
+    bucket.deleteOne({_id:bucketId},function(err,result){
+      if(err)
+        deferred.reject(err);
+      else
+        deferred.resolve();
 
       db.close();
     })
@@ -138,6 +198,13 @@ exports.setupUserData = function(username, cache){
     })
 }
 
+exports.dropUserData = function(username, cache){
+  return exports.findUser(username)
+    .then(function(u){
+      return exports.dropUserBuckets(u);
+    })
+}
+
 exports.setupUserBuckets = function(user){
   return q.all([
     exports.saveBucket({
@@ -153,4 +220,14 @@ exports.setupUserBuckets = function(user){
       isPublic: false
     })
   ])
+}
+
+exports.dropUserBuckets = function(user){
+  return exports.findUserBuckets(user._id).then(function(buckets){
+    var deleteOperations = [];
+    buckets.forEach(function(bucket){
+      deleteOperations.push(exports.deleteBucket(bucket._id))
+    });
+    return q.all(deleteOperations);
+  })
 }

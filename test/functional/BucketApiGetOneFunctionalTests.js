@@ -27,19 +27,11 @@ describe('Bucket API', function () {
 
     before(function(done){
       this.timeout(5000);
-
-      var operations = [];
-      ['user', 'jane', 'tom', 'billy', 'superadmin'].forEach(function(username){
-        operations.push(helpers.setupUserData(username, tmp))
-      });
-
-      q.all(operations).then(function(){
-        done()
-      });
+      helpers.prepareBuckets(tmp).then(function(){ done() })
     });
 
     after(function(done){
-      // TODO: drop data ?
+      helpers.dropBuckets(tmp).then(function(){ done() })
       done();
     });
 

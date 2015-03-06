@@ -20,9 +20,21 @@ describe('Bucket API', function () {
     helpers.stopServer(serverProcess, done);
   });
 
-  /*
   describe('GET list', function () {
 
+    var tmp = {};
+
+    before(function(done){
+      this.timeout(5000);
+      helpers.prepareBuckets(tmp).then(function(){ done() })
+    });
+
+    after(function(done){
+      helpers.dropBuckets(tmp).then(function(){ done() })
+      done();
+    });
+
+    /*
     describe('having anonymous access', function () {
       it('returns public buckets on guest path', function(done){});
       it('returns 401 on me path', function(done){});
@@ -44,8 +56,8 @@ describe('Bucket API', function () {
       it('returns any user buckets on user path', function(done){});
       it('returns all buckets on admin path', function(done){});
     });
+    */
 
   });
-  */
 
 });
