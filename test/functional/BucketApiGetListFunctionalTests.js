@@ -34,14 +34,57 @@ describe('Bucket API', function () {
       done();
     });
 
-    /*
+
     describe('having anonymous access', function () {
-      it('returns public buckets on guest path', function(done){});
-      it('returns 401 on me path', function(done){});
-      it('returns 401 on user path', function(done){});
-      it('returns 401 on admin path', function(done){});
+     it('returns public buckets on guest path', function(done){
+       request
+         .get('http://localhost:8080/api/v1/user/guest/bucket')
+         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+         .end(function(err, res){
+           should.not.exist(err);
+           res.status.should.eql(200);
+           res.body.data.length.should.eql(5);
+           res.body.total.should.eql(5);
+           res.body.data.forEach(function(bucket){
+             bucket.isPublic.should.eql(true)
+           })
+           done();
+         });
+     });
+
+      it('returns 401 on me path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/me/bucket')
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(401);
+            done();
+          });
+      });
+      it('returns 401 on user path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/'+tmp.user.user._id.toString()+'/bucket')
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(401);
+            done();
+          });
+      });
+      it('returns 401 on admin path', function(done){
+        request
+          .get('http://localhost:8080/api/v1/user/admin/bucket')
+          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
+          .end(function(err, res){
+            should.not.exist(err);
+            res.status.should.eql(401);
+            done();
+          });
+      });
     });
 
+    /*
     describe('having user access', function () {
       it('returns public buckets on guest path', function(done){});
       it('returns my buckets on me path', function(done){});

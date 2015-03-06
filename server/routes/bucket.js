@@ -86,27 +86,6 @@ function buildPositionalOptions(req){
   }
 }
 
-/** LIST item accessibility
- +----------------+----------+---------------+----------------+----------------+
- | authentication | pathUser | require owner | require public | has access     |
- |----------------+----------+---------------+----------------+----------------+
- | anonymous      | guest    |      NO       |       YES      |       YES      |
- | anonymous      | me       |      YES      |       *        |       NO       |
- | anonymous      | admin    |      YES      |       *        |       NO       |
- | anonymous      | user     |      YES      |       *        |       NO       |
- +----------------+----------+---------------+----------------+----------------+
- | user           | guest    |      NO       |       YES      |       YES      |
- | user           | me       |      YES      |       *        |       YES      |
- | user           | admin    |      YES      |       *        |       NO       |
- | user           | user     |      YES      |       *        |    PARTIALLY   |
- +----------------+----------+---------------+----------------+----------------+
- | admin          | guest    |      NO       |       *        |       YES      |
- | admin          | me       |      YES      |       *        |       YES      |
- | admin          | admin    |      YES      |       *        |       YES      |
- | admin          | user     |      YES      |       *        |       YES      |
- +----------------+----------+---------------+----------------+----------------+
- */
-
 router.get('/', function (req, res) {
 
   /* jshint maxcomplexity:15 */
