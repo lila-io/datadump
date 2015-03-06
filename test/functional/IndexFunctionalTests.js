@@ -1,29 +1,23 @@
 var
   should = require('should'),
   request = require('superagent'),
-  exec = require('child_process').exec,
-  MongoClient = require('mongodb').MongoClient,
-  q = require('Q'),
-  child
+  helpers = require('../helpers')
 ;
 
 describe('Authentication functional tests', function () {
 
+  var serverProcess;
+
   before(function(done){
     this.timeout(4000);
-    child = exec('node ./server.js', {env:{NODE_ENV:'test'}},function (error, stdout, stderr) {});
-    child.stdout.on('data', function(data) {
-      if( /Listening on port 8080/.test(data) ){
-        done();
-      } else {
-        //console.log(">>>> data: ",data)
-      }
+    helpers.startServer(function(process){
+      serverProcess = process;
+      done();
     });
   });
 
   after(function(done){
-    child.kill();
-    done();
+    helpers.stopServer(serverProcess, done);
   });
 
   describe('Index page', function () {
