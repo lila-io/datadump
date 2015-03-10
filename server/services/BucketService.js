@@ -156,12 +156,13 @@ exports.deleteOne = function(id, ownerId, cb){
 
 exports.list = function(searchQuery, options, cb){
 
-  /* jshint maxcomplexity:10 */
+  /* jshint maxcomplexity:15 */
 
   var
     args = Array.prototype.slice.call(arguments),
     projection = null,
     sortOption = {},
+    query = {},
     positionalParams,
     getItems, getCount, asyncFinally
     ;
@@ -180,8 +181,23 @@ exports.list = function(searchQuery, options, cb){
   sortOption[options.sort] = options.order === 'asc' ? 1 : -1;
   positionalParams = { skip: options.offset || 0, limit:options.max || 10, sort: sortOption };
 
+  searchQuery = searchQuery || {};
+  if(searchQuery.query){
+    query.$or = [];
+    query.$or.push( { path: { $regex : '.*' + searchQuery.query + '.*', $options : 'i' } } )
+    query.$or.push( { description: { $regex : '.*' + searchQuery.query + '.*', $options : 'i' } } )
+  }
+
+  if(searchQuery.isPublic != null){
+    query.isPublic = searchQuery.isPublic;
+  }
+
+  if(searchQuery.user != null){
+    query.user = searchQuery.user;
+  }
+
   getItems = function(done) {
-    mongoose.model(MODELNAME).find(searchQuery, projection, positionalParams, function(err,results){
+    mongoose.model(MODELNAME).find(query, projection, positionalParams, function(err,results){
       if(err != null){
         return done(err);
       }

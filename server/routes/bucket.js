@@ -25,9 +25,13 @@ router.use(authAllowAll);
 router.get('/:id', function (req, res) {
 
   var itemId = req.params.id;
-  var userId = ras.resourceOwnerId(req);
-  if(ras.isAdmin(req.user)) {
-    userId = null;
+  var userId = null;
+
+  if (ras.requiresResourceOwnerIdForOne(req)) {
+    if(!ras.resourceOwnerExists(req)){
+      return res.status(400).send({errors : ['User not found in path']});
+    }
+    userId = ras.resourceOwnerId(req);
   }
 
   bucketService.findOne(itemId, userId, function (err, item) {
@@ -45,28 +49,31 @@ router.get('/:id', function (req, res) {
 
 });
 
+
 function buildSearchOptions(req){
 
-  /* jshint maxcomplexity:10 */
+  /* jshint maxcomplexity:7 */
 
-  var searchOptions = {};
   req = req || {};
   req.query = req.query || {};
 
+  var searchOptions = {};
+
   if (req.query.query) {
     var cleanedQuery = req.query.query.replace(/\W+/g, ' ');
-    searchOptions.title = { $regex : '.*' + cleanedQuery + '.*', $options : 'i' };
+    searchOptions.query = cleanedQuery;
   }
 
-  if (req.query.isPublic) {
+  if (req.query.isPublic != null) {
     searchOptions.isPublic = req.query.isPublic === 'true';
   }
   if(ras.requiresPublicList(req)){
+    console.log('requiresPublicList')
     searchOptions.isPublic = true;
   }
 
-  if (ras.requiresResourceOwnerId(req)) {
-    searchOptions.user = req.resourceOwner._id;
+  if (ras.requiresResourceOwnerIdForList(req)) {
+    searchOptions.user = ras.resourceOwnerId(req);
   }
 
   return searchOptions;
@@ -74,28 +81,32 @@ function buildSearchOptions(req){
 
 function buildPositionalOptions(req){
 
-  /* jshint maxcomplexity:10 */
+  /* jshint maxcomplexity:7 */
 
   req = req || {};
   req.query = req.query || {};
+
   return {
     max    : Math.min((parseInt(req.query.max,10) || 10), 100),
     offset : parseInt(req.query.offset,10) || 0,
     sort   : req.query.sort || 'dateCreated',
     order  : req.query.order === 'asc' ? 'asc' : 'desc'
-  }
+  };
 }
 
 router.get('/', function (req, res) {
 
   /* jshint maxcomplexity:15 */
 
-  if(!ras.canAccessList(req)){
+  if(!ras.hasAccessToList(req)){
     res.status(401).end();
     return;
   }
 
-  bucketService.list(buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
+  var positional = buildPositionalOptions(req);
+  var searchOptions = buildSearchOptions(req);
+
+  bucketService.list(searchOptions, positional, function (err, items, total) {
     if (err != null) {
       return res.status(400).send({errors: [err]});
     }

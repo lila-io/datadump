@@ -304,70 +304,62 @@ describe('bucket router helper method', function () {
 
   describe('resourceOwnerId()', function () {
 
-    it('returns null if no arguments', function (done) {
-      (service.resourceOwnerId() === null).should.be.true;
+    it('throws if no arguments', function (done) {
+      (function(){ service.resourceOwnerId() }).should.throw(/resource owner is set before/);
       done();
     });
 
-    it('returns null for anonymous', function (done) {
-      (service.resourceOwnerId({resourceOwner:{}}) === null).should.be.true;
+    it('throws for anonymous', function (done) {
+      (function(){ service.resourceOwnerId({resourceOwner:{}}) }).should.throw(/resource owner is set before/);
       done();
     });
 
-    it('returns null on non supported path', function (done) {
-      (service.resourceOwnerId({resourceOwner:{_id:123},resourceOwnerType:'bla'}) === null).should.be.true;
-      (service.resourceOwnerId({resourceOwner:{_id:123},resourceOwnerType:'admin'}) === null).should.be.true;
-      (service.resourceOwnerId({resourceOwner:{_id:123},resourceOwnerType:'guest'}) === null).should.be.true;
-      done();
-    });
-
-    it('returns id on supported path', function (done) {
-      service.resourceOwnerId({resourceOwner:{_id:123},resourceOwnerType:'me'}).should.equal(123);
-      service.resourceOwnerId({resourceOwner:{_id:123},resourceOwnerType:'user'}).should.equal(123);
+    it('returns id', function (done) {
+      service.resourceOwnerId({resourceOwner:{_id:123}}).should.equal(123);
       done();
     });
 
   });
 
-  describe('canAccessList()', function () {
+  describe('hasAccessToList()', function () {
 
     it('returns false if user is anonymous and path is not guest', function (done) {
-      (service.canAccessList({}) === false).should.be.true;
+      (service.hasAccessToList({}) === false).should.be.true;
       done();
     });
 
     it('returns true if user is anonymous and path is guest', function (done) {
-      (service.canAccessList({resourceOwnerType:'guest'}) === true).should.be.true;
+      (service.hasAccessToList({resourceOwnerType:'guest'}) === true).should.be.true;
       done();
     });
 
     it('returns false for user on admin path', function (done) {
-      (service.canAccessList({user:{_id:123},resourceOwnerType:'admin'}) === false).should.be.true;
+      (service.hasAccessToList({user:{_id:123},resourceOwnerType:'admin'}) === false).should.be.true;
       done();
     });
 
     it('returns true for admin on admin path', function (done) {
-      (service.canAccessList({user:{_id:123,isAdmin:true},resourceOwnerType:'admin'}) === true).should.be.true;
+      (service.hasAccessToList({user:{_id:123,isAdmin:true},resourceOwnerType:'admin'}) === true).should.be.true;
       done();
     });
 
-    it('returns false for user on other user path', function (done) {
-      (service.canAccessList({user:{_id:123},resourceOwnerType:'user'}) === false).should.be.true;
+    it('returns true for user on other user path', function (done) {
+      (service.hasAccessToList({user:{_id:123},resourceOwnerType:'user'}) === true).should.be.true;
       done();
     });
 
     it('returns true for user on guest path', function (done) {
-      (service.canAccessList({user:{_id:123},resourceOwnerType:'guest'}) === true).should.be.true;
+      (service.hasAccessToList({user:{_id:123},resourceOwnerType:'guest'}) === true).should.be.true;
       done();
     });
 
     it('returns true for user on own user path', function (done) {
-      (service.canAccessList({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType:'user'}) === true).should.be.true;
+      (service.hasAccessToList({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType:'user'}) === true).should.be.true;
       done();
     });
 
     it('returns true for user on own path', function (done) {
-      (service.canAccessList({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType:'me'}) === true).should.be.true;
+      (service.hasAccessToList({user:{_id:123},resourceOwner:{_id:123},resourceOwnerType:'me'}) === true).should.be.true;
       done();
     });
 
@@ -376,47 +368,127 @@ describe('bucket router helper method', function () {
 
   describe('requiresPublicList()', function () {
 
-    it('returns true if anonymous on guest path', function (done) {
+    it('YES if no data in request', function (done) {
+      (service.requiresPublicList({}) === true).should.be.true;
+      done();
+    });
+
+    it('YES if user on admin path', function (done) {
+      (service.requiresPublicList({user:{_id:123},resourceOwnerType:'admin'}) === true).should.be.true;
+      done();
+    });
+
+    it('YES if anonymous on guest path', function (done) {
       (service.requiresPublicList({resourceOwnerType:'guest'}) === true).should.be.true;
       done();
     });
 
-    it('returns false if anonymous on non guest path', function (done) {
-      (service.requiresPublicList({}) === false).should.be.true;
-      done();
-    });
-
-    it('returns true if non admin user on guest path', function (done) {
+    it('YES if user on guest path', function (done) {
       (service.requiresPublicList({user:{_id:123},resourceOwnerType:'guest'}) === true).should.be.true;
       done();
     });
 
-    it('returns false if non admin user on non guest path', function (done) {
-      (service.requiresPublicList({user:{_id:123}}) === false).should.be.true;
+    it('YES if admin on guest path', function (done) {
+      (service.requiresPublicList({user:{_id:123,isAdmin:true},resourceOwnerType:'guest'}) === true).should.be.true;
       done();
     });
 
-    it('returns false if admin user on guest path', function (done) {
-      (service.requiresPublicList({user:{_id:123,isAdmin:true},resourceOwnerType:'guest'}) === false).should.be.true;
+
+    it('YES if anonymous on user path', function (done) {
+      (service.requiresPublicList({resourceOwnerType:'user'}) === true).should.be.true;
       done();
     });
 
-    it('returns false if admin user', function (done) {
+    it('NO if user on own user id path', function (done) {
+      (service.requiresPublicList({user:{_id:123},resourceOwnerType:'user',resourceOwner:{_id:123}}) === false).should.be.true;
+      done();
+    });
+
+    it('YES if user on other user id path', function (done) {
+      (service.requiresPublicList({user:{_id:123},resourceOwnerType:'user',resourceOwner:{_id:321}}) === true).should.be.true;
+      done();
+    });
+
+    it('NO if admin on user path', function (done) {
+      (service.requiresPublicList({user:{_id:123,isAdmin:true},resourceOwnerType:'user'}) === false).should.be.true;
+      done();
+    });
+
+    it('YES if anonymous on admin path', function (done) {
+      (service.requiresPublicList({resourceOwnerType:'admin'}) === true).should.be.true;
+      done();
+    });
+
+    it('YES if user on admin path', function (done) {
+      (service.requiresPublicList({user:{_id:123},resourceOwnerType:'admin'}) === true).should.be.true;
+      done();
+    });
+
+    it('NO if admin user', function (done) {
       (service.requiresPublicList({user:{_id:123,isAdmin:true}}) === false).should.be.true;
       done();
     });
 
   });
 
-  describe('requiresResourceOwnerId()', function () {
+  describe('requiresResourceOwnerIdForOne()', function () {
 
-    it('returns true for non guest path', function (done) {
-      (service.requiresResourceOwnerId({}) === true).should.be.true;
+    it('YES for request without data', function (done) {
+      (service.requiresResourceOwnerIdForOne({}) === true).should.be.true;
       done();
     });
 
-    it('returns false for guest path', function (done) {
-      (service.requiresResourceOwnerId({resourceOwnerType:'guest'}) === false).should.be.true;
+    it('NO for admin', function (done) {
+      (service.requiresResourceOwnerIdForOne({user:{_id:123,isAdmin:true}}) === false).should.be.true;
+      done();
+    });
+
+    it('YES for me path', function (done) {
+      (service.requiresResourceOwnerIdForOne({resourceOwnerType:'me'}) === true).should.be.true;
+      done();
+    });
+
+    it('YES for user path', function (done) {
+      (service.requiresResourceOwnerIdForOne({resourceOwnerType:'user'}) === true).should.be.true;
+      done();
+    });
+
+    it('NO for guest path', function (done) {
+      (service.requiresResourceOwnerIdForOne({resourceOwnerType:'guest'}) === false).should.be.true;
+      done();
+    });
+
+    it('NO for admin path', function (done) {
+      (service.requiresResourceOwnerIdForOne({resourceOwnerType:'admin'}) === false).should.be.true;
+      done();
+    });
+
+  });
+
+  describe('requiresResourceOwnerIdForList()', function () {
+
+    it('YES for request without data', function (done) {
+      (service.requiresResourceOwnerIdForList({}) === true).should.be.true;
+      done();
+    });
+
+    it('YES for me path', function (done) {
+      (service.requiresResourceOwnerIdForList({resourceOwnerType:'me'}) === true).should.be.true;
+      done();
+    });
+
+    it('YES for user path', function (done) {
+      (service.requiresResourceOwnerIdForList({resourceOwnerType:'user'}) === true).should.be.true;
+      done();
+    });
+
+    it('NO for guest path', function (done) {
+      (service.requiresResourceOwnerIdForList({resourceOwnerType:'guest'}) === false).should.be.true;
+      done();
+    });
+
+    it('NO for admin path', function (done) {
+      (service.requiresResourceOwnerIdForList({resourceOwnerType:'admin'}) === false).should.be.true;
       done();
     });
 

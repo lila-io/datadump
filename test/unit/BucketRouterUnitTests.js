@@ -14,12 +14,12 @@ describe('bucket router helper method', function () {
     it('returns cleaned request query', function (done) {
       var q = '<meta%20http-equiv="refresh"%20content="0;">';
       var cleaned = ' meta 20http equiv refresh 20content 0 ';
-      testFn({ resourceOwner:{_id:123}, query: {query:q} }).title['$regex'].should.eql('.*' + cleaned + '.*');
+      testFn({ resourceOwner:{_id:123}, query: {query:q} }).query.should.eql(cleaned);
       done();
     });
 
     it('recognizes isPublic parameter', function (done) {
-      testFn({ resourceOwner:{_id:123}, query: {isPublic:'false'} }).isPublic.should.equal(false);
+      testFn({ user:{_id:123, isAdmin:true}, resourceOwner:{_id:123}, query: {isPublic:'false'} }).isPublic.should.equal(false);
       done();
     });
 

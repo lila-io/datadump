@@ -247,13 +247,24 @@ describe('bucket router path tests', function () {
       });
     });
 
-    it('rejects user on *user* path when requesting not own data', function (done) {
+    it('shows public buckets on *user* path when authenticate duser is not owner', function (done) {
+
       withRequestData({user:{_id:123},resourceOwner:{_id:'x'},resourceOwnerType: UrlAccessType.USER}, function (reqDone) {
-        request(app).get('/').expect(401, function (err, res) {
-          reqDone();
-          if (err) return done(err);
-          done();
-        });
+        var revert = routerMock.__set__({
+          bucketService: {
+            list: function (searchOpts, positionalOpts, cb) {
+              cb(null, [], 0);
+            }
+          }
+        })
+        var req = request(app);
+        req.get('/')
+          .expect(200, function (err, res) {
+            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
       });
     });
 
@@ -271,76 +282,99 @@ describe('bucket router path tests', function () {
 
   describe('GET /:id', function () {
 
-    it('fails with error', function (done) {
-      var revert = routerMock.__set__({
-        bucketService: {
-          findOne: function (a, b, c) {
-            c('error')
-          }
-        }
-      })
-      request(app)
-        .get('/bla')
+    it('fails with error as no resource owner in request', function (done) {
+      var req = request(app);
+      req.get('/bla')
         .expect('Content-Type', /json/)
-        .expect(/error/)
+        .expect(/User not found in path/)
         .expect(400, function (err, res) {
-          revert();
           if (err) return done(err);
           done();
         });
+    });
+
+    it('fails with error', function (done) {
+      withRequestData({resourceOwner:{_id:123}}, function (reqDone) {
+        var revert = routerMock.__set__({
+          bucketService: {
+            findOne: function (a, b, c) {
+              c('myError')
+            }
+          }
+        })
+        request(app)
+          .get('/bla')
+          .expect('Content-Type', /json/)
+          .expect(/myError/)
+          .expect(400, function (err, res) {
+            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
     });
 
     it('returns with 404 if no bucket is found', function (done) {
-      var revert = routerMock.__set__({
-        bucketService: {
-          findOne: function (a, b, c) {
-            c(null, null)
+      withRequestData({resourceOwner:{_id:123}}, function (reqDone) {
+        var revert = routerMock.__set__({
+          bucketService: {
+            findOne: function (a, b, c) {
+              c(null, null)
+            }
           }
-        }
-      })
-      request(app)
-        .get('/bla')
-        .expect(404, function (err, res) {
-          revert();
-          if (err) return done(err);
-          done();
-        });
+        })
+        request(app)
+          .get('/bla')
+          .expect(404, function (err, res) {
+            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
     });
 
     it('returns with 403', function (done) {
-      var revert = routerMock.__set__({
-        bucketService: {
-          findOne: function (a, b, c) {
-            c(null, {isPublic: false})
+      withRequestData({resourceOwner:{_id:123}}, function (reqDone) {
+        var revert = routerMock.__set__({
+          bucketService: {
+            findOne: function (a, b, c) {
+              c(null, {isPublic: false})
+            }
           }
-        }
-      })
-      var req = request(app);
-      req.user = {_id: 'some user id'}
-      req.get('/bla')
-        .expect(403, function (err, res) {
-          revert();
-          if (err) return done(err);
-          done();
-        });
+        })
+        var req = request(app);
+        req.user = {_id: 'some user id'}
+        req.get('/bla')
+          .expect(403, function (err, res) {
+            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
     });
 
     it('returns public bucket', function (done) {
-      var revert = routerMock.__set__({
-        bucketService: {
-          findOne: function (a, b, c) {
-            c(null, {isPublic: true})
+      withRequestData({resourceOwner:{_id:123}}, function (reqDone) {
+        var revert = routerMock.__set__({
+          bucketService: {
+            findOne: function (a, b, c) {
+              c(null, {isPublic: true})
+            }
           }
-        }
-      })
-      var req = request(app);
-      req.get('/bla')
-        .expect(200)
-        .expect(/data/, function (err, res) {
-          revert();
-          if (err) return done(err);
-          done();
-        });
+        })
+        var req = request(app);
+        req.get('/bla')
+          .expect(200)
+          .expect(/data/, function (err, res) {
+            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
     });
 
   });

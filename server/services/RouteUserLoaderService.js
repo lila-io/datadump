@@ -49,8 +49,11 @@ RouteUserLoader.prototype.setUserInRequest = function(id,req,res,next){
   routeAuthenticationService.require('ROLE_USER')(req, res, function(){
     mongoose.model('User').findById(id, function(userError, userFromPath){
       if (userError) {
-        console.error(userError);
+        console.log('userError',userError);
         return res.status(403).end();
+      }
+      if(!userFromPath){
+        return res.status(404).end();
       }
       req.resourceOwner = userFromPath;
       next();

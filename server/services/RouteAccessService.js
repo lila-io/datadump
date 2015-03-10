@@ -24,7 +24,7 @@ RoutePathAccess.prototype.isSelf = function (authUser,item){
 
 RoutePathAccess.prototype.isOwnPath = function (authUser,pathUser){
   if(this.isUser(authUser) && this.isUser(pathUser))
-    return authUser._id === pathUser._id;
+    return authUser._id + '' === pathUser._id + '';
   return false;
 }
 
@@ -54,29 +54,43 @@ RoutePathAccess.prototype.hasAccess = function (authUser,pathUserType,item){
   else return false;
 }
 
-RoutePathAccess.prototype.resourceOwnerId = function (req){
-  if(req && this.isUser(req.resourceOwner) && ( req.resourceOwnerType === UrlAccessType.ME || req.resourceOwnerType === UrlAccessType.USER))
-    return req.resourceOwner._id;
-  return null;
+RoutePathAccess.prototype.resourceOwnerExists = function (req){
+  return req && this.isUser(req.resourceOwner)
 }
 
-RoutePathAccess.prototype.canAccessList = function (req){
-  return !(
-  (this.isAnonymous(req.user) && req.resourceOwnerType !== UrlAccessType.GUEST) ||
-  (this.isUser(req.user) && !this.isAdmin(req.user) && req.resourceOwnerType === UrlAccessType.ADMIN) ||
-  (!this.isOwnPath(req.user,req.resourceOwner) && req.resourceOwnerType === UrlAccessType.USER)
-  )
+RoutePathAccess.prototype.resourceOwnerId = function (req){
+  if(this.resourceOwnerExists(req))
+    return req.resourceOwner._id;
+
+  throw new Error('Make sure resource owner is set before calling this')
+}
+
+RoutePathAccess.prototype.hasAccessToList = function (req){
+   return this.isAdmin(req.user) ||
+   (this.isUser(req.user) && !this.isAdmin(req.user) &&
+     (req.resourceOwnerType === UrlAccessType.GUEST ||
+        req.resourceOwnerType === UrlAccessType.ME ||
+        req.resourceOwnerType === UrlAccessType.USER)) ||
+   (this.isAnonymous(req.user) && req.resourceOwnerType === UrlAccessType.GUEST)
 }
 
 RoutePathAccess.prototype.requiresPublicList = function (req){
   return !!(
-  ( this.isAnonymous(req.user) || ( this.isUser(req.user) && !this.isAdmin(req.user) ) ) &&
-  req.resourceOwnerType === UrlAccessType.GUEST
+    !this.hasAccessToList(req) ||
+    req.resourceOwnerType === UrlAccessType.GUEST ||
+    (( this.isUser(req.user) && !this.isAdmin(req.user) ) && req.resourceOwnerType === UrlAccessType.USER && !this.isOwnPath(req.user,req.resourceOwner))
   )
 }
 
-RoutePathAccess.prototype.requiresResourceOwnerId = function (req){
-  return req.resourceOwnerType !== UrlAccessType.GUEST
+RoutePathAccess.prototype.requiresResourceOwnerIdForOne = function (req){
+  return !(this.isAdmin(req.user) ||
+    req.resourceOwnerType === UrlAccessType.GUEST ||
+    req.resourceOwnerType === UrlAccessType.ADMIN
+  )
+}
+
+RoutePathAccess.prototype.requiresResourceOwnerIdForList = function (req){
+  return req.resourceOwnerType !== UrlAccessType.GUEST && req.resourceOwnerType !== UrlAccessType.ADMIN
 }
 
 RoutePathAccess.prototype.canAccessModifyResourcePath = function (req){

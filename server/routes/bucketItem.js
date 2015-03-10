@@ -108,7 +108,7 @@ router.get(/^(?:\/){1}([_\-0-9a-zA-Z]+)(?:\/)?$/, function (req, res) {
     return;
   }
 
-  if(!ras.canAccessList(req)){
+  if(!ras.hasAccessToList(req)){
     res.status(401).end();
     return;
   }
