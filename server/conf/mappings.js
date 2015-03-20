@@ -23,9 +23,8 @@ exports.init = function (app) {
   // setup routes for this app
   app.use('/', require('../routes/index'));
   app.use(cfg.routes.auth.path, require('../routes/auth'));
+  app.use(cfg.routes.api.versionRoot + '/user/:userId/bucket/:bucketId/data', require('../routes/bucketItem'));
   app.use(cfg.routes.api.versionRoot + '/user/:userId/bucket', require('../routes/bucket'));
-  app.use(cfg.routes.api.versionRoot + '/user/:userId/data', require('../routes/bucketItem'));
-  app.use(cfg.routes.api.versionRoot + '/user/:userId/admin', require('../routes/admin'));
 
   // 404 errors
   app.use(RouteErrors.sendNotFound());

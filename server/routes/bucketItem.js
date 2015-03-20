@@ -5,6 +5,7 @@
 var
 	router = require('express').Router(),
 	bucketItemService = require('../services/BucketItemService'),
+  bucketService = require('../services/BucketService'),
   ras = require('../services/RouteAccessService'),
 	routeAuthenticationService = require('../services/RouteAuthenticationService')
 	;
@@ -22,48 +23,55 @@ var authAllowUser = function(req,res,next){
 
 router.use(authAllowAll);
 
-/** SHOW item accessibility
- |----------------+----------+--------------+----------+------------+-------------|
- | authentication | pathUser | resourceUser | isPublic | has access | HTTP status |
- |----------------+----------+--------------+----------+------------+-------------|
- | *              | *        | *            | YES      | TRUE       | 200         |
- |----------------+----------+--------------+----------+------------+-------------|
- | anonymous      | guest    | *            | NO       | FALSE      | 404         |
- | anonymous      | me       | *            | NO       | FALSE      | 403         |
- | anonymous      | admin    | *            | NO       | FALSE      | 403         |
- | anonymous      | user     | *            | NO       | FALSE      | 403         |
- |----------------+----------+--------------+----------+------------+-------------|
- | user           | guest    | user         | NO       | FALSE      | 403         |
- | user           | guest    | self         | NO       | TRUE       | 200         |
- | user           | me       | user         | NO       | FALSE      | 403         |
- | user           | me       | self         | NO       | TRUE       | 200         |
- | user           | admin    | *            | NO       | FALSE      | 403         |
- | user           | user     | user         | NO       | FALSE      | 403         |
- | user           | user     | self         | NO       | TRUE       | 200         |
- |----------------+----------+--------------+----------+------------+-------------|
- | admin          | *        | *            | NO       | TRUE       | 200         |
- |----------------+----------+--------------+----------+------------+-------------|
- */
 
+function loadBucket(req,res,next){
 
-// /user-specified-path/ends_With-Id_123
-router.get(/^(?:\/){1}([_\-0-9a-zA-Z]+)\/([_\-0-9a-zA-Z]+){1}(?:\/)?$/, function (req, res) {
+  var bucketId = req.params.bucketId;
+  var userId = null;
 
-  var path = req.params[0];
-  var itemId = req.params[1];
-  var userId = ras.resourceOwnerId(req);
+  if (ras.requiresResourceOwnerIdForOne(req)) {
+    if(!ras.resourceOwnerExists(req)){
+      return res.status(400).send({errors : ['User not found in path']});
+    }
+    userId = ras.resourceOwnerId(req);
+  }
+  if(!bucketId){
+    return res.status(400).send({errors : ['Bucket not found in path']});
+  }
 
-  bucketItemService.findOne(itemId, userId, path, function (err, item) {
+  bucketService.findOne(bucketId, userId, function (err, bucket) {
     if (err != null) {
       return res.status(400).send({errors : [err]});
     }
-    if( ras.isResourceHidden(req.user,req.resourceOwnerType,item) ){
-      res.status(404).end();
-    } else if ( !ras.hasAccess(req.user,req.resourceOwnerType,item) ){
-      res.status(403).end();
-    } else {
-      res.send({data : item});
+    if( ras.isResourceHidden(req.user,req.resourceOwnerType,bucket) ){
+      return res.status(404).end();
     }
+    if( !ras.hasAccess(req.user,req.resourceOwnerType,bucket) ){
+      return res.status(403).end();
+    }
+
+    next(null,bucket);
+  });
+}
+
+
+router.get('/:bucketItemId', function (req, res) {
+
+  var itemId = req.params.bucketItemId;
+  if(!itemId){
+    return res.status(404).end();
+  }
+
+  loadBucket(req, res, function(err,bucket){
+    bucketItemService.findOne(itemId, bucket._id, function (err, item) {
+      if (err != null){
+        return res.status(400).send({errors : [err]});
+      }
+      if(!item){
+        return res.status(404).end();
+      }
+      res.send({data : item});
+    });
   });
 });
 
@@ -96,35 +104,21 @@ function buildPositionalOptions(req){
   }
 }
 
-router.get(/^(?:\/){1}([_\-0-9a-zA-Z]+)(?:\/)?$/, function (req, res) {
+router.get('/', function (req, res) {
 
-  /* jshint maxcomplexity:15 */
-
-  var path = req.params[0];
-  var userId = ras.resourceOwnerId(req);
-
-  if(path == null || userId == null){
-    res.status(404).end();
-    return;
-  }
-
-  if(!ras.hasAccessToList(req)){
-    res.status(401).end();
-    return;
-  }
-
-  bucketItemService.list(userId, path, buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
-    if (err != null) {
-      return res.status(400).send({errors: [err]});
-    }
-
-    res.send({data : items, total : total});
+  loadBucket(req, res, function(err,bucket){
+    bucketItemService.list(bucket._id, buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
+      if (err != null) {
+        return res.status(400).send({errors: [err]});
+      }
+      res.send({data : items, total : total});
+    });
   });
 
 });
 
 
-router.post(/^(?:\/){1}([_\-0-9a-zA-Z]+)(?:\/)?$/, authAllowUser, function (req, res) {
+router.post('/', authAllowUser, function (req, res) {
 
   var path = req.params[0];
   var userId = req.user._id;
@@ -142,7 +136,7 @@ router.post(/^(?:\/){1}([_\-0-9a-zA-Z]+)(?:\/)?$/, authAllowUser, function (req,
 });
 
 
-router.delete(/^(?:\/){1}([_\-0-9a-zA-Z]+)\/([_\-0-9a-zA-Z]+){1}(?:\/)?$/, authAllowUser, function (req, res) {
+router.delete('/:bucketItemId', authAllowUser, function (req, res) {
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();

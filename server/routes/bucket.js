@@ -22,9 +22,9 @@ var authAllowUser = function(req,res,next){
 
 router.use(authAllowAll);
 
-router.get('/:id', function (req, res) {
+router.get('/:bucketId', function (req, res) {
 
-  var itemId = req.params.id;
+  var itemId = req.params.bucketId;
   var userId = null;
 
   if (ras.requiresResourceOwnerIdForOne(req)) {
@@ -103,10 +103,7 @@ router.get('/', function (req, res) {
     return;
   }
 
-  var positional = buildPositionalOptions(req);
-  var searchOptions = buildSearchOptions(req);
-
-  bucketService.list(searchOptions, positional, function (err, items, total) {
+  bucketService.list(buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
     if (err != null) {
       return res.status(400).send({errors: [err]});
     }
@@ -153,14 +150,14 @@ router.post('/', authAllowUser, function (req, res) {
  | admin          | *        | *            | TRUE       | 200         |
  |----------------+----------+--------------+------------+-------------|
  */
-router.put('/:id', authAllowUser, function (req, res) {
+router.put('/:bucketId', authAllowUser, function (req, res) {
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();
     return;
   }
 
-  var itemId = req.params.id;
+  var itemId = req.params.bucketId;
   var userId = ras.resourceOwnerId(req);
   var updateFields = {};
   if (req.param('title') != null) {
@@ -214,14 +211,14 @@ router.put('/:id', authAllowUser, function (req, res) {
  | admin          | *        | *            | TRUE       | 200         |
  |----------------+----------+--------------+------------+-------------|
  */
-router.delete('/:id', authAllowUser, function (req, res) {
+router.delete('/:bucketId', authAllowUser, function (req, res) {
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();
     return;
   }
 
-  var itemId = req.params.id;
+  var itemId = req.params.bucketId;
   var userId = ras.resourceOwnerId(req);
 
   bucketService.findOne(itemId, userId, function (err, item) {
