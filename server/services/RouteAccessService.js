@@ -14,6 +14,13 @@ RoutePathAccess.prototype.isAdmin = function (u){
   return !!(this.isUser(u) && u.isAdmin);
 }
 
+
+RoutePathAccess.prototype.isGuestPath = function (req){ return req.resourceOwnerType === UrlAccessType.GUEST }
+RoutePathAccess.prototype.isMePath = function (req){ return req.resourceOwnerType === UrlAccessType.ME }
+RoutePathAccess.prototype.isUserPath = function (req){ return req.resourceOwnerType === UrlAccessType.USER }
+RoutePathAccess.prototype.isAdminPath = function (req){ return req.resourceOwnerType === UrlAccessType.ADMIN }
+
+
 RoutePathAccess.prototype.isSelf = function (authUser,item){
   if(this.isUser(authUser) && item != null && this.isUser(item.user))
     return authUser._id === item.user._id;

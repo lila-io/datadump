@@ -120,9 +120,27 @@ router.post('/', authAllowUser, function (req, res) {
 		path        : req.param('path') || '',
 		description : req.param('description') || '',
 		isPublic    : (req.param('isPublic') + '') === 'true',
-    user        : req.user._id,
+    user        : null,
 		data        : []
 	};
+
+  if(ras.isGuestPath(req)){
+    return res.status(404).end();
+  }
+
+  if(ras.isAnonymous(req.user)){
+    return res.status(401).end();
+  }
+
+  if(ras.isAdminPath(req) && !ras.isAdmin(req.user)){
+    return res.status(403).end();
+  }
+
+  if(ras.isUserPath(req) && !ras.isAdmin(req.user) && !ras.isOwnPath(req.user, req.resourceOwner)){
+    return res.status(403).end();
+  }
+
+  itemData.user = req.resourceOwner._id;
 
 	bucketService.createOne(itemData, function (err, item) {
 		if (err != null) {
