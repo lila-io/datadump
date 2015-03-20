@@ -1,0 +1,24 @@
+sudo: false
+language: node_js
+node_js:
+- '0.10'
+
+cache:
+  directories:
+    - node_modules
+
+before_install:
+- export PATH=$HOME/.local/bin:${PATH}
+
+install: pip install --user boto
+
+install:
+- npm install
+
+script: npm test
+
+notifications:
+  email:
+    - ivar.prudnikov@gmail.com
+  on_success: always
+  on_failure: always
