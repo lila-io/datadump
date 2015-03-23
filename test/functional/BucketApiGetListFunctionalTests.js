@@ -41,7 +41,6 @@ describe('Bucket API', function () {
          .get('http://localhost:8080/api/v1/user/guest/bucket')
          .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
          .end(function(err, res){
-           should.not.exist(err);
            res.status.should.eql(200);
            res.body.data.length.should.eql(5);
            res.body.total.should.eql(5);
@@ -57,7 +56,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/me/bucket')
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(401);
             done();
           });
@@ -67,7 +65,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/'+tmp.user.user._id.toString()+'/bucket')
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(401);
             done();
           });
@@ -77,7 +74,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/admin/bucket')
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(401);
             done();
           });
@@ -102,7 +98,6 @@ describe('Bucket API', function () {
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(200);
             res.body.data.length.should.eql(5);
             res.body.total.should.eql(5);
@@ -118,7 +113,6 @@ describe('Bucket API', function () {
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(200);
             res.body.data.length.should.eql(2);
             res.body.total.should.eql(2);
@@ -134,7 +128,6 @@ describe('Bucket API', function () {
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(200);
             res.body.data.length.should.eql(2);
             res.body.total.should.eql(2);
@@ -150,7 +143,6 @@ describe('Bucket API', function () {
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(200);
             res.body.data.length.should.eql(1);
             res.body.total.should.eql(1);
@@ -167,7 +159,6 @@ describe('Bucket API', function () {
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(403);
             done();
           });

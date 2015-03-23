@@ -1,7 +1,7 @@
 var
   should = require('should'),
   request = require('superagent'),
-  q = require('Q'),
+  q = require('q'),
   helpers = require('../helpers')
 ;
 
@@ -29,8 +29,7 @@ describe('Authentication functional tests', function () {
         .post('http://localhost:8080/api/auth/login')
         .send({})
         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
+        .end(function(err,res){
           res.text.should.containEql('username and password are required');
           res.status.should.eql(400);
           done();
@@ -44,8 +43,7 @@ describe('Authentication functional tests', function () {
         .post('http://localhost:8080/api/auth/login')
         .send({ username: '', password: '' })
         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
+        .end(function(err,res){
           res.text.should.containEql('username and password are required');
           res.status.should.eql(400);
           done();
@@ -59,8 +57,7 @@ describe('Authentication functional tests', function () {
         .post('http://localhost:8080/api/auth/login')
         .send({ username: 'ho', password: 'hey' })
         .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-        .end(function(err, res){
-          should.not.exist(err);
+        .end(function(err,res){
           res.text.should.containEql('Username and password combination not found');
           res.status.should.eql(400);
           done();
@@ -79,8 +76,7 @@ describe('Authentication functional tests', function () {
           .post('http://localhost:8080/api/auth/login')
           .send({ username: 'ho', password: 'hey' })
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
+          .end(function(err,res){
             res.text.should.containEql(msg);
             res.status.should.eql(status);
             deferred.resolve();
@@ -114,8 +110,7 @@ describe('Authentication functional tests', function () {
           .post('http://localhost:8080/api/auth/login')
           .send({ username: username, password: 123456789 })
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
+          .end(function(err,res){
             res.text.should.containEql(msg);
             res.status.should.eql(status);
             deferred.resolve();
@@ -194,8 +189,7 @@ describe('Authentication functional tests', function () {
           .post('http://localhost:8080/api/auth/login')
           .send({ username: 'superadmin', password: 'superadmin' })
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
+          .end(function(err,res){
             should.exist(res.body.token);
             res.status.should.eql(200);
             deferred.resolve(res.body.token);
@@ -211,8 +205,7 @@ describe('Authentication functional tests', function () {
           .get('http://localhost:8080/api/v1/user/me/admin')
           .set('Authorization', authHeaderValue)
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
+          .end(function(err,res){
             res.status.should.eql(200);
             deferred.resolve();
           });

@@ -1,7 +1,7 @@
 var
   should = require('should'),
   request = require('superagent'),
-  q = require('Q'),
+  q = require('q'),
   helpers = require('../helpers')
 ;
 
@@ -41,8 +41,7 @@ describe('Bucket API', function () {
         request
           .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.user.publicBucket._id)
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
-          .end(function(err, res){
-            should.not.exist(err);
+          .end(function(err,res){
             res.status.should.eql(200);
             res.body.data._id.should.eql(tmp.user.publicBucket._id.toString())
             new Date(res.body.data.dateCreated).toDateString().should.eql(new Date().toDateString())
@@ -58,7 +57,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.user.privateBucket._id)
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(404);
             done();
           });
@@ -68,7 +66,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/me/bucket/'+tmp.user.publicBucket._id)
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(401);
             done();
           });
@@ -78,7 +75,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/'+tmp.user.user._id.toString()+'/bucket/'+tmp.user.publicBucket._id.toString())
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(401);
             done();
           });
@@ -88,7 +84,6 @@ describe('Bucket API', function () {
           .get('http://localhost:8080/api/v1/user/admin/bucket/'+tmp.user.publicBucket._id)
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
-            should.not.exist(err);
             res.status.should.eql(401);
             done();
           });
