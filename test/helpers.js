@@ -13,7 +13,7 @@ exports.startServer = function(cb){
   if('function' !== typeof cb)
     throw new Error('Callback must be specified')
 
-  child = exec('node ./server.js', {env:{NODE_ENV:'test'}},function (error, stdout, stderr) {});
+  child = exec('pwd && node ./server.js', {env:{NODE_ENV:'test'}},function (error, stdout, stderr) {});
 
   child.stdout.on('data', function(data) {
     if( /Listening on port 8080/.test(data) ){
