@@ -13,7 +13,7 @@ exports.startServer = function(cb){
   if('function' !== typeof cb)
     throw new Error('Callback must be specified')
 
-  child = exec('pwd && node server', {env:{NODE_ENV:'test'}},function (error, stdout, stderr) {
+  child = exec('echo $PATH && node server', {env:{NODE_ENV:'test'}},function (error, stdout, stderr) {
     console.log('error: ' + error);
     console.log('stdout: ' + stdout);
     console.log('stderr: ' + stderr);

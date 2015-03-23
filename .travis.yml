@@ -21,9 +21,8 @@ install:
 before_script:
   - sleep 15
   - mongo mydb_test --eval 'db.addUser("travis", "test");'
-  - echo $PATH
 
-script: npm test
+script: echo $PATH && npm test
 
 notifications:
   email:
