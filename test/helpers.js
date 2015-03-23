@@ -19,7 +19,7 @@ exports.startServer = function(cb){
     if( /Listening on port 8080/.test(data) ){
       cb(child);
     } else {
-      console.log(">>>> data: ",data)
+      //console.log(">>>> data: ",data)
     }
   });
 

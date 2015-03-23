@@ -116,6 +116,8 @@ router.get('/', function (req, res) {
 
 router.post('/', authAllowUser, function (req, res) {
 
+  /* jshint maxcomplexity:10 */
+
 	var itemData = {
 		path        : req.param('path') || '',
 		description : req.param('description') || '',
@@ -132,43 +134,36 @@ router.post('/', authAllowUser, function (req, res) {
     return res.status(401).end();
   }
 
-  if(ras.isAdminPath(req) && !ras.isAdmin(req.user)){
-    return res.status(403).end();
+  if(!ras.canAccessModifyResourcePath(req)){
+    res.status(403).end();
+    return;
   }
 
-  if(ras.isUserPath(req) && !ras.isAdmin(req.user) && !ras.isOwnPath(req.user, req.resourceOwner)){
-    return res.status(403).end();
-  }
-
-  itemData.user = req.resourceOwner._id;
+  itemData.user = ras.resourceOwnerId(req);
 
 	bucketService.createOne(itemData, function (err, item) {
 		if (err != null) {
       return res.status(400).send({errors: [err]});
 		}
 
-		res.send({data:item});
+    // TODO: add link to resource
+		res.status(201).send({data:item});
 	});
 
 });
 
 
-/** UPDATE item accessibility
- |----------------+----------+--------------+------------+-------------|
- | authentication | pathUser | resourceUser | has access | HTTP status |
- |----------------+----------+--------------+------------+-------------|
- | user           | guest    | user         | FALSE      | 403         |
- | user           | guest    | self         | TRUE       | 200         |
- | user           | me       | user         | FALSE      | 403         |
- | user           | me       | self         | TRUE       | 200         |
- | user           | admin    | *            | FALSE      | 403         |
- | user           | user     | user         | FALSE      | 403         |
- | user           | user     | self         | TRUE       | 200         |
- |----------------+----------+--------------+------------+-------------|
- | admin          | *        | *            | TRUE       | 200         |
- |----------------+----------+--------------+------------+-------------|
- */
 router.put('/:bucketId', authAllowUser, function (req, res) {
+
+  /* jshint maxcomplexity:10 */
+
+  if(ras.isGuestPath(req)){
+    return res.status(404).end();
+  }
+
+  if(ras.isAnonymous(req.user)){
+    return res.status(401).end();
+  }
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();
@@ -177,9 +172,11 @@ router.put('/:bucketId', authAllowUser, function (req, res) {
 
   var itemId = req.params.bucketId;
   var userId = ras.resourceOwnerId(req);
+
   var updateFields = {};
-  if (req.param('title') != null) {
-    updateFields.title = req.param('title');
+
+  if (req.param('path') != null) {
+    updateFields.path = req.param('path');
   }
   if (req.param('description') != null) {
     updateFields.description = req.param('description');
@@ -214,22 +211,17 @@ router.put('/:bucketId', authAllowUser, function (req, res) {
 
 });
 
-/** DELETE item accessibility
- |----------------+----------+--------------+------------+-------------|
- | authentication | pathUser | resourceUser | has access | HTTP status |
- |----------------+----------+--------------+------------+-------------|
- | user           | guest    | user         | FALSE      | 403         |
- | user           | guest    | self         | TRUE       | 200         |
- | user           | me       | user         | FALSE      | 403         |
- | user           | me       | self         | TRUE       | 200         |
- | user           | admin    | *            | FALSE      | 403         |
- | user           | user     | user         | FALSE      | 403         |
- | user           | user     | self         | TRUE       | 200         |
- |----------------+----------+--------------+------------+-------------|
- | admin          | *        | *            | TRUE       | 200         |
- |----------------+----------+--------------+------------+-------------|
- */
+
+
 router.delete('/:bucketId', authAllowUser, function (req, res) {
+
+  if(ras.isGuestPath(req)){
+    return res.status(404).end();
+  }
+
+  if(ras.isAnonymous(req.user)){
+    return res.status(401).end();
+  }
 
   if(!ras.canAccessModifyResourcePath(req)){
     res.status(403).end();

@@ -382,9 +382,75 @@ describe('bucket router path tests', function () {
 
   describe('POST /', function () {
 
-    it('fails with error', function (done) {
+    it('fails without authentication', function (done) {
+      request(app)
+        .post('/')
+        .expect(401, done);
+    });
 
+    it('fails with error as resource owner is not set', function (done) {
       withRequestData({user: {_id:123}}, function (reqDone) {
+        request(app)
+          .post('/')
+          .expect(403, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails on guest path when authenticated as user', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .post('/')
+          .expect(404, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails on guest path when authenticated as admin', function (done) {
+      withRequestData({user: {_id:123, isAdmin:true}, resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .post('/')
+          .expect(404, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails for user when not own path', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:321}}, function (reqDone) {
+        request(app)
+          .post('/')
+          .expect(403, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails for user when on admin path', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
+        request(app)
+          .post('/')
+          .expect(403, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails with service error', function (done) {
+
+      withRequestData({user: {_id:123}, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           bucketService: {
             createOne: function (a, b) {
@@ -408,7 +474,7 @@ describe('bucket router path tests', function () {
 
     it('returns bucket', function (done) {
 
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           bucketService: {
             createOne: function (a, b) {
@@ -420,7 +486,7 @@ describe('bucket router path tests', function () {
           .post('/')
           .expect('Content-Type', /json/)
           .expect(/\"data\".?\:.?\{.*_id.*\}/)
-          .expect(200, function (err, res) {
+          .expect(201, function (err, res) {
             revert();
             reqDone();
             if (err) return done(err);
@@ -430,9 +496,9 @@ describe('bucket router path tests', function () {
 
     });
 
-    it('check default bucket values', function (done) {
+    it('check default bucket values added in controller', function (done) {
 
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           bucketService: {
             createOne: function (a, b) {
@@ -449,7 +515,7 @@ describe('bucket router path tests', function () {
         });
         request(app)
           .post('/')
-          .expect(200, function (err, res) {
+          .expect(201, function (err, res) {
             revert();
             reqDone();
             if (err) return done(err);
@@ -461,7 +527,7 @@ describe('bucket router path tests', function () {
 
     it('check overriden bucket values', function (done) {
 
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
           bucketService: {
             createOne: function (a, b) {
@@ -480,7 +546,7 @@ describe('bucket router path tests', function () {
           .post('/')
           .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
           .set('Accept', 'application/json')
-          .expect(200, function (err, res) {
+          .expect(201, function (err, res) {
             revert();
             reqDone();
             if (err) return done(err);
@@ -495,21 +561,65 @@ describe('bucket router path tests', function () {
 
   describe('PUT /:id', function () {
 
-    it('returns 403 as user does not have right to access resource',function(done){
+    it('fails without authentication', function (done) {
+      request(app)
+        .put('/yay')
+        .expect(401, done);
+    });
+
+    it('fails with error as resource owner is not set', function (done) {
       withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath: function() {
-              return false;
-            }
-          }
-        });
         request(app)
           .put('/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
-          .set('Accept', 'application/json')
           .expect(403, function (err, res) {
-            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails on guest path when authenticated as user', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .put('/yay')
+          .expect(404, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails on guest path when authenticated as admin', function (done) {
+      withRequestData({user: {_id:123, isAdmin:true}, resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .put('/yay')
+          .expect(404, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails for user when not own path', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:321}}, function (reqDone) {
+        request(app)
+          .put('/yay')
+          .expect(403, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails for user when on admin path', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
+        request(app)
+          .put('/yay')
+          .expect(403, function (err, res) {
             reqDone();
             if (err) return done(err);
             done();
@@ -518,12 +628,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 400 as user has access but error is returned',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;}
-          },
           bucketService: {
             findOne: function(a,b,c){
               c('arrrgh')
@@ -532,7 +638,7 @@ describe('bucket router path tests', function () {
         });
         request(app)
           .put('/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
+          .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss'})
           .set('Accept', 'application/json')
           .expect(/arrrgh/)
           .expect(400, function (err, res) {
@@ -545,12 +651,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 404 as user has access but bucket is not found',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;}
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,null)
@@ -571,13 +673,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 403 as user has access but is not the owner',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return false; }
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:765}})
@@ -586,7 +683,7 @@ describe('bucket router path tests', function () {
         });
         request(app)
           .put('/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
+          .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss'})
           .set('Accept', 'application/json')
           .expect(403, function (err, res) {
             revert();
@@ -598,20 +695,15 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 400 as update fails',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
             },
             updateOne: function(id,payload,cb){
               id.should.equal('yay');
-              payload.title.should.equal('ttl');
+              payload.path.should.equal('ttl');
               payload.description.should.equal('dscr');
               payload.isPublic.should.equal(true);
               Object.keys(payload).length.should.equal(3);
@@ -621,7 +713,7 @@ describe('bucket router path tests', function () {
         });
         request(app)
           .put('/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
+          .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss'})
           .set('Accept', 'application/json')
           .expect(/arrgh/)
           .expect(400, function (err, res) {
@@ -634,20 +726,15 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 200 as update succeeds',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
             },
             updateOne: function(id,payload,cb){
               id.should.equal('yay');
-              payload.title.should.equal('ttl');
+              payload.path.should.equal('ttl');
               payload.description.should.equal('dscr');
               payload.isPublic.should.equal(true);
               Object.keys(payload).length.should.equal(3);
@@ -657,7 +744,7 @@ describe('bucket router path tests', function () {
         });
         request(app)
           .put('/yay')
-          .send({title:'ttl',description:'dscr',isPublic:'true',user:'ss',videos:['tt']})
+          .send({path:'ttl',description:'dscr',isPublic:'true',user:'ss'})
           .set('Accept', 'application/json')
           .expect(/7777/)
           .expect(200, function (err, res) {
@@ -674,17 +761,65 @@ describe('bucket router path tests', function () {
 
   describe('DELETE /:id', function () {
 
-    it('returns 403 as user does not have right to access resource',function(done){
+    it('fails without authentication', function (done) {
+      request(app)
+        .delete('/yay')
+        .expect(401, done);
+    });
+
+    it('fails with error as resource owner is not set', function (done) {
       withRequestData({user: {_id:123}}, function (reqDone) {
-        var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return false; }
-          },
-        });
         request(app)
           .delete('/yay')
           .expect(403, function (err, res) {
-            revert();
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails on guest path when authenticated as user', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .delete('/yay')
+          .expect(404, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails on guest path when authenticated as admin', function (done) {
+      withRequestData({user: {_id:123, isAdmin:true}, resourceOwnerType: UrlAccessType.GUEST}, function (reqDone) {
+        request(app)
+          .delete('/yay')
+          .expect(404, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails for user when not own path', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.USER, resourceOwner: {_id:321}}, function (reqDone) {
+        request(app)
+          .delete('/yay')
+          .expect(403, function (err, res) {
+            reqDone();
+            if (err) return done(err);
+            done();
+          });
+      });
+    });
+
+    it('fails for user when on admin path', function (done) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ADMIN}, function (reqDone) {
+        request(app)
+          .delete('/yay')
+          .expect(403, function (err, res) {
             reqDone();
             if (err) return done(err);
             done();
@@ -693,12 +828,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 400 as user has access but error is returned',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ME, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;}
-          },
           bucketService: {
             findOne: function(a,b,c){
               c('arrrgh')
@@ -719,12 +850,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 404 as user has access but bucket is not found',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ME, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;}
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,null)
@@ -744,13 +871,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 403 as user has access but is not the owner',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ME, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return false; }
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:765}})
@@ -770,13 +892,8 @@ describe('bucket router path tests', function () {
     });
 
     it('returns 400 as delete fails',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ME, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
@@ -800,14 +917,9 @@ describe('bucket router path tests', function () {
       });
     });
 
-    it('returns 200 as delete succeeds',function(done){
-      withRequestData({user: {_id:123}}, function (reqDone) {
+    it('returns 204 as delete succeeds',function(done){
+      withRequestData({user: {_id:123}, resourceOwnerType: UrlAccessType.ME, resourceOwner: {_id:123}}, function (reqDone) {
         var revert = routerMock.__set__({
-          ras : {
-            canAccessModifyResourcePath : function() { return true; },
-            resourceOwnerId: function(){return 123;},
-            canModifyResource: function(){ return true; }
-          },
           bucketService: {
             findOne: function(a,b,c){
               c(null,{user:{_id:123}})
