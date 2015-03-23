@@ -3,7 +3,7 @@ var
   request = require('superagent'),
   exec = require('child_process').exec,
   MongoClient = require('mongodb').MongoClient,
-  q = require('Q')
+  q = require('q')
   ;
 
 exports.startServer = function(cb){
