@@ -3,6 +3,8 @@ language: node_js
 node_js:
 - '0.10'
 
+services:
+  - mongodb
 
 cache:
   directories:
@@ -15,6 +17,10 @@ install: pip install --user boto
 
 install:
 - npm install
+
+before_script:
+  - sleep 15
+  - mongo mydb_test --eval 'db.addUser("travis", "test");'
 
 script: npm test
 
