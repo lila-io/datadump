@@ -99,7 +99,6 @@ UserSchema.statics.findOrCreate = function (data, overwritePassword, cb) {
     } else {
       self.create(data,function(e12,newUser){
         if(e12) return cb(e12);
-        console.log('User %s created: %s', newUser.username, newUser);
         cb(null,newUser);
       });
     }

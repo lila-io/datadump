@@ -68,7 +68,6 @@ function buildSearchOptions(req){
     searchOptions.isPublic = req.query.isPublic === 'true';
   }
   if(ras.requiresPublicList(req)){
-    console.log('requiresPublicList')
     searchOptions.isPublic = true;
   }
 

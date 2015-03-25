@@ -18,16 +18,16 @@ exports.startServer = function(cb){
   child = fork('server.js', [], {env:{NODE_ENV:'test'}, timeout:10000, silent:true});
 
   child.stderr.on('data', function(data) {
-    console.error(">>>> error: ",data.toString('utf8'))
+    //console.error(">>>> error: ",data.toString('utf8'))
   });
 
-  console.log("child pid: ",child.pid);
+  //console.log("child pid: ",child.pid);
 
   child.stdout.on('data', function(data) {
     if( /Listening on port 8080/.test(data) ){
       cb(child);
     } else {
-      console.log(">>>> data: ",data.toString('utf8'))
+      //console.log(">>>> data: ",data.toString('utf8'))
     }
   });
 
@@ -38,16 +38,16 @@ exports.stopServer = function(child, cb){
   if('function' !== typeof cb)
     throw new Error('Callback must be specified')
 
-  console.log("stopping server")
+  //console.log("stopping server")
 
   var isKilled;
   if(child) {
-    console.log("cached child connection being killed")
+    //console.log("cached child connection being killed")
     isKilled = child.kill();
   }
 
   if(isKilled === false){
-    console.log("could not kill child process")
+    //console.log("could not kill child process")
   }
 
   cb();

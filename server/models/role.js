@@ -25,7 +25,6 @@ RoleSchema.statics.findOrCreate = function (authority, cb) {
     } else {
       self.create({authority: authority}, function(e12,newRole){
         if(e12) return cb(e12);
-        console.log('Role %s created: %s', newRole.authority, newRole);
         cb(null,newRole);
       });
     }
