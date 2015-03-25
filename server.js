@@ -73,9 +73,40 @@ datasource.init(app)
     'use strict';
     console.log('\n');
     console.log('+--------------------------');
-    console.log(' Environment ' + app.get('env'));
-    console.log(' Listening on port ' + app.get('port'));
+    console.log(' Environment', app.get('env'));
+    console.log(' PID %d', process.pid);
+    console.log(' Listening on port', app.get('port'));
     console.log('+--------------------------');
   });
 });
+
+
+function exitHandler(options, err) {
+
+  if (err) {
+    console.log(err.stack);
+  }
+
+  if (options.cleanup){
+    datasource.disconnect(function(){
+      console.log('datasource disconnected')
+    });
+  }
+
+  if (options.exit) {
+    datasource.disconnect(function(){
+      console.log('datasource disconnected')
+      process.exit(0);
+    });
+  }
+}
+
+// do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+
+// catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+// catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
 

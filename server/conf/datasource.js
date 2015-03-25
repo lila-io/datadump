@@ -37,7 +37,7 @@ exports.init = function (ctx) {
   console.log('Starting db connection to : ', dbConfig.dbUri);
 
   mongoose.connection.on('open', function () {
-    console.log('Connected to mongo server.');
+    console.log('[%d] Connected to mongo server.',process.pid);
     db = mongoose.connection.db;
     try {
       ctx.mongooseInstance = db;
@@ -56,4 +56,9 @@ exports.init = function (ctx) {
 
 exports.testDbString = function(){
   return 'mongodb://localhost/test_db_' + Math.floor((Math.random() * 1000000) + 1);
+};
+
+exports.disconnect = function(fn){
+  console.log('[%d] disconnecting from mongoose',process.pid);
+  mongoose.disconnect(fn);
 };

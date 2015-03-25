@@ -10,15 +10,29 @@ describe('Authentication functional tests', function () {
   var serverProcess;
 
   before(function(done){
+
+    console.log("starting server connection")
+
     this.timeout(4000);
-    helpers.startServer(function(process){
-      serverProcess = process;
+    helpers.startServer(function(child){
+
+      console.log("server connection started")
+
+      serverProcess = child;
       done();
     });
   });
 
   after(function(done){
-    helpers.stopServer(serverProcess, done);
+
+    console.log("stopping server connection")
+
+    helpers.stopServer(serverProcess, function(){
+
+      console.log("server connection stopped")
+      done();
+
+    });
   });
 
   describe('Superadmin login', function () {

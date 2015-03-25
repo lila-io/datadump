@@ -1,10 +1,12 @@
 var
   should = require('should'),
   request = require('superagent'),
-  exec = require('child_process').exec,
+  fork = require('child_process').fork,
   MongoClient = require('mongodb').MongoClient,
   q = require('q')
   ;
+
+
 
 exports.startServer = function(cb){
 
@@ -13,38 +15,40 @@ exports.startServer = function(cb){
   if('function' !== typeof cb)
     throw new Error('Callback must be specified')
 
-  child = exec('echo $PATH && node server', {env:{NODE_ENV:'test'}},function (error, stdout, stderr) {
-    console.log('error: ' + error);
-    console.log('stdout: ' + stdout);
-    console.log('stderr: ' + stderr);
+  child = fork('server.js', [], {env:{NODE_ENV:'test'}, timeout:10000, silent:true});
+
+  child.stderr.on('data', function(data) {
+    console.error(">>>> error: ",data.toString('utf8'))
   });
 
-
+  console.log("child pid: ",child.pid);
 
   child.stdout.on('data', function(data) {
     if( /Listening on port 8080/.test(data) ){
       cb(child);
     } else {
-      console.log(">>>> data: ",data)
+      console.log(">>>> data: ",data.toString('utf8'))
     }
   });
 
-  child.stdout.on('error', function(data) {
-    console.error(">>>> error: ",data)
-  });
-
-  setTimeout(function(){
-    if(child) child.kill();
-  },60000);
 };
 
-exports.stopServer = function(process, cb){
+exports.stopServer = function(child, cb){
 
   if('function' !== typeof cb)
     throw new Error('Callback must be specified')
 
-  if(process)
-    process.kill();
+  console.log("stopping server")
+
+  var isKilled;
+  if(child) {
+    console.log("cached child connection being killed")
+    isKilled = child.kill();
+  }
+
+  if(isKilled === false){
+    console.log("could not kill child process")
+  }
 
   cb();
 };
