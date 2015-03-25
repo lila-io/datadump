@@ -2,7 +2,7 @@ var
   should = require('should'),
   request = require('superagent'),
   q = require('q'),
-  helpers = require('../helpers')
+  helpers = require('../FunctionalTestHelpers')
 ;
 
 describe('Authentication functional tests', function () {

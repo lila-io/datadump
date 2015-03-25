@@ -7,7 +7,7 @@ var
   async = require('async')
 ;
 
-describe('Bucket schema integration tests', function () {
+describe('Bucket service integration tests', function () {
 
   var dbString = datasource.testDbString();
 
@@ -332,75 +332,6 @@ describe('Bucket schema integration tests', function () {
       bucketService.createOne(opts,function(err,data){
 
         bucketService.findOne(data._id,userId,function(err,data){
-          should(err).not.be.ok;
-          should(data).be.ok;
-          done();
-        });
-
-      });
-    });
-
-  });
-
-  describe('find by user and path tests', function () {
-
-    it('fails with invalid arguments', function (done) {
-
-      (function() {
-        bucketService.findOneByUserAndPath();
-      }).should.throw(/^Illegal arguments/);
-
-      (function() {
-        bucketService.findOneByUserAndPath({},{},{});
-      }).should.throw(/^Illegal arguments/);
-
-      done();
-    });
-
-    it('does not find item', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      bucketService.findOneByUserAndPath(id,'/path',function(err,data){
-        should(err).not.be.ok;
-        should(data).not.be.ok;
-        done();
-      });
-
-    });
-
-    it('does not find an item as user does not match', function (done) {
-
-      var userId = mongoose.Types.ObjectId();
-      var otherId = mongoose.Types.ObjectId();
-      var opts = {
-        description: 'ha',
-        path: '/path',
-        user: userId
-      };
-
-      bucketService.createOne(opts,function(err,data){
-
-        bucketService.findOneByUserAndPath(otherId,'/path',function(err,data){
-          should(err).not.be.ok;
-          should(data).not.be.ok;
-          done();
-        });
-
-      });
-    });
-
-    it('finds an item with matching user', function (done) {
-
-      var userId = mongoose.Types.ObjectId();
-      var opts = {
-        description: 'ha',
-        path: 'path',
-        user: userId
-      };
-
-      bucketService.createOne(opts,function(err,data){
-
-        bucketService.findOneByUserAndPath(userId,'path',function(err,data){
           should(err).not.be.ok;
           should(data).be.ok;
           done();

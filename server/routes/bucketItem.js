@@ -23,8 +23,7 @@ var authAllowUser = function(req,res,next){
 
 router.use(authAllowAll);
 
-
-function loadBucket(req,res,next){
+function loadVisibleBucket(req,res,next){
 
   var bucketId = req.params.bucketId;
   var userId = null;
@@ -54,26 +53,43 @@ function loadBucket(req,res,next){
   });
 }
 
+function loadEditableBucket(req,res,next){
 
-router.get('/:bucketItemId', function (req, res) {
+  var bucketId = req.params.bucketId;
+  var userId = null;
 
-  var itemId = req.params.bucketItemId;
-  if(!itemId){
+  if(ras.isGuestPath(req)){
     return res.status(404).end();
   }
 
-  loadBucket(req, res, function(err,bucket){
-    bucketItemService.findOne(itemId, bucket._id, function (err, item) {
-      if (err != null){
-        return res.status(400).send({errors : [err]});
+  if(ras.isAnonymous(req.user)){
+    return res.status(401).end();
+  }
+
+  if(!ras.canAccessModifyResourcePath(req)){
+    res.status(403).end();
+    return;
+  }
+
+  userId = ras.resourceOwnerId(req);
+
+  bucketService.findOne(bucketId, userId, function (err, bucket) {
+    if (err != null) {
+      return res.status(400).send({errors : [err]});
+    }
+    if( !bucket ){
+      res.status(404).end();
+    } else {
+
+      if(!ras.canModifyResource(req,bucket)){
+        res.status(403).end();
+        return;
       }
-      if(!item){
-        return res.status(404).end();
-      }
-      res.send({data : item});
-    });
+
+      next(null,bucket);
+    }
   });
-});
+}
 
 function buildSearchOptions(req){
 
@@ -104,10 +120,30 @@ function buildPositionalOptions(req){
   }
 }
 
+router.get('/:bucketItemId', function (req, res) {
+
+  var bucketItemId = req.params.bucketItemId;
+  if(!bucketItemId){
+    return res.status(404).end();
+  }
+
+  loadVisibleBucket(req, res, function(err,bucket){
+    bucketItemService.findOne(bucket, bucketItemId, function (err, item) {
+      if (err != null){
+        return res.status(400).send({errors : [err]});
+      }
+      if(!item){
+        return res.status(404).end();
+      }
+      res.send({data : item});
+    });
+  });
+});
+
 router.get('/', function (req, res) {
 
-  loadBucket(req, res, function(err,bucket){
-    bucketItemService.list(bucket._id, buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
+  loadVisibleBucket(req, res, function(err,bucket){
+    bucketItemService.list(bucket, buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
       if (err != null) {
         return res.status(400).send({errors: [err]});
       }
@@ -117,44 +153,37 @@ router.get('/', function (req, res) {
 
 });
 
-
 router.post('/', authAllowUser, function (req, res) {
 
-  var path = req.params[0];
-  var userId = req.user._id;
 	var itemData = req.body || {};
 
-	bucketItemService.createOne(userId, path, itemData, function (err, item) {
-		if (err != null) {
-      return res.status(400).send({errors: [err]});
-		}
-    if(!item){
-      return res.status(400).send({errors: ['Could not save item']});
-    }
-		res.send({data:item});
-	});
+  loadEditableBucket(req, res, function(err,bucket){
+    bucketItemService.createOne(bucket, itemData, function (err, item) {
+      if (err != null) {
+        return res.status(400).send({errors: [err]});
+      }
+      if(!item){
+        return res.status(400).send({errors: ['Could not save item']});
+      }
+      res.send({data:item});
+    });
+  });
 });
-
 
 router.delete('/:bucketItemId', authAllowUser, function (req, res) {
 
-  if(!ras.canAccessModifyResourcePath(req)){
-    res.status(403).end();
-    return;
-  }
+  var bucketItemId = req.params.bucketItemId;
 
-  var path = req.params[0];
-  var itemId = req.params[1];
-  var userId = ras.resourceOwnerId(req);
-
-  bucketItemService.deleteOne(itemId, userId, path, function (errrr, deleted) {
-    if (errrr != null) {
-      return res.status(400).send({errors: [errrr]});
-    }
-    if (deleted == null) {
-      return res.status(404).send({errors: ['Could not delete item']});
-    }
-    res.status(204).end();
+  loadEditableBucket(req, res, function(err,bucket){
+    bucketItemService.deleteOne(bucket, bucketItemId, function (err, deleted) {
+      if (err != null) {
+        return res.status(400).send({errors: [err]});
+      }
+      if(deleted == null){
+        return res.status(404).send({errors: ['Could not delete item']});
+      }
+      res.status(204).end();
+    });
   });
 
 });

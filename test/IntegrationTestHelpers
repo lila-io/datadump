@@ -1,0 +1,75 @@
+/**
+ * as route authentication function cannot be overriden as it is already registered
+ * the only simple way to mock it out is to mock out passport module
+ * which will be called from route authentication method
+ * to do it I need to override module cache
+ */
+exports.withMocks = function(){
+  var args, closure, moduleNames, moduleCache = [], mocks = [];
+
+  args = Array.prototype.slice.call(arguments);
+  if(args.length < 2){
+    throw new Error('Missing arguments, should be: moduleName1 [,moduleName2 [,...]], closureBody')
+  }
+  closure = args[args.length-1];
+  if('function' !== typeof closure){
+    throw new Error('Last argument must be function in which context modules will be mocked')
+  }
+  moduleNames = args.slice(0,-1);
+  moduleNames.forEach(function(name){
+    var n,mod,mock;
+    n = name + '';
+    mod = require(n);
+    mock = rewire(n);
+    require.cache[require.resolve(n)] = mock;
+    moduleCache.push(mod);
+    mocks.push(mock);
+  });
+
+  function revert(){
+    moduleNames.forEach(function(name,index){
+      var n = name + '';
+      delete require.cache[require.resolve(n)];
+      moduleCache.shift();
+      mocks.shift();
+    });
+  }
+
+  mocks.push(revert);
+
+  closure.apply(closure, mocks);
+}
+
+
+function EditableRouteMiddleware(){
+  this.customMiddleware = null;
+}
+
+EditableRouteMiddleware.prototype.withRequestData = function(data, closure) {
+  var self = this;
+  self.customMiddleware = function (req, res, next) {
+    Object.keys(data).forEach(function (key) {
+      req[key] = data[key];
+    });
+    next();
+  };
+  function revert() {
+    self.customMiddleware = null;
+  }
+  closure.call(closure, revert);
+}
+
+EditableRouteMiddleware.prototype.editableMiddleware = function() {
+
+  var self = this;
+
+  return function(req, res, next) {
+    if (typeof self.customMiddleware === 'function') {
+      self.customMiddleware.call(null, req, res, next);
+    } else {
+      next();
+    }
+  }
+};
+
+exports.EditableRouteMiddleware = EditableRouteMiddleware

@@ -34,35 +34,32 @@ describe('BucketItem service integration tests', function () {
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.createOne({},{},{},{});
+        bucketItemService.createOne({},{},{});
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.createOne(null,null,null,function(){});
+        bucketItemService.createOne(null,null,function(){});
       }).should.throw(/^Illegal arguments/);
 
       done();
     });
 
-    it('fails as bucket does not match', function (done) {
+    it('fails as bucket does not have an id', function (done) {
 
       var path = 'path';
       var itemData = 123;
       var userId = mongoose.Types.ObjectId();
-      var otherId = mongoose.Types.ObjectId();
       var bucketData = {
         description: 'ha',
         path: path,
         user: userId
       };
 
-      bucketService.createOne(bucketData,function(err,bucket){
-        bucketItemService.createOne(otherId,path,itemData,function(err,item){
-          should(err).not.be.ok;
-          should(item).not.be.ok;
-          done();
-        });
-      });
+      (function() {
+        bucketItemService.createOne(bucketData,itemData,function(err,item){});
+      }).should.throw(/^Illegal arguments/);
+
+      done();
     });
 
     it('succeeds', function (done) {
@@ -77,70 +74,12 @@ describe('BucketItem service integration tests', function () {
       };
 
       bucketService.createOne(bucketData,function(err,bucket){
-        bucketItemService.createOne(userId,path,itemData,function(err,item){
+        bucketItemService.createOne(bucket,itemData,function(err,item){
           should(err).not.be.ok;
           should(item).be.ok;
           item.bucket.should.eql(bucket._id);
           item.data.should.eql(itemData);
           done();
-        });
-      });
-    });
-
-  });
-
-
-  describe('show by id tests', function () {
-
-    it('fails with invalid arguments', function (done) {
-
-      (function() {
-        bucketItemService.findOneById();
-      }).should.throw(/^Illegal arguments/);
-
-      (function() {
-        bucketItemService.findOneById({},{});
-      }).should.throw(/^Illegal arguments/);
-
-      (function() {
-        bucketItemService.findOneById(null,function(){});
-      }).should.throw(/^Illegal arguments/);
-
-      done();
-    });
-
-    it('does not find item', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      bucketItemService.findOneById(id,function(err,data){
-        should(err).not.be.ok;
-        should(data).not.be.ok;
-        done();
-      });
-
-    });
-
-    it('finds an item', function (done) {
-
-      var path = 'path';
-      var itemData = 123;
-      var userId = mongoose.Types.ObjectId();
-      var bucketData = {
-        description: 'ha',
-        path: path,
-        user: userId
-      };
-
-      bucketService.createOne(bucketData,function(err,bucket){
-        bucketItemService.createOne(userId,path,itemData,function(err,item){
-
-          bucketItemService.findOneById(item._id,function(err,data){
-            should(err).not.be.ok;
-            should(data).be.ok;
-            data.data.should.eql(123);
-            done();
-          });
-
         });
       });
     });
@@ -155,50 +94,18 @@ describe('BucketItem service integration tests', function () {
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.findOne({},{},{},{});
+        bucketItemService.findOne({},{},{});
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.findOne(null,null,null,function(){});
+        bucketItemService.findOne(null,null,function(){});
+      }).should.throw(/^Illegal arguments/);
+
+      (function() {
+        bucketItemService.findOne({},mongoose.Types.ObjectId(),function(){});
       }).should.throw(/^Illegal arguments/);
 
       done();
-    });
-
-    it('returns null as parent bucket is not found', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var userId = mongoose.Types.ObjectId();
-      bucketItemService.findOne(id,userId,'path',function(err,data){
-        should(err).not.be.ok;
-        should(data).not.be.ok;
-        done();
-      });
-
-    });
-
-    it('returns null as user is null', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var userId = null;
-      bucketItemService.findOne(id,userId,'path',function(err,data){
-        should(err).not.be.ok;
-        should(data).not.be.ok;
-        done();
-      });
-
-    });
-
-    it('returns null as path is null', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var userId = mongoose.Types.ObjectId();
-      bucketItemService.findOne(id,userId,null,function(err,data){
-        should(err).not.be.ok;
-        should(data).not.be.ok;
-        done();
-      });
-
     });
 
     it('does not find an item as bucket does not match', function (done) {
@@ -214,14 +121,12 @@ describe('BucketItem service integration tests', function () {
       };
 
       bucketService.createOne(bucketData,function(err,bucket){
-        bucketItemService.createOne(userId,path,itemData,function(err,item){
-
-          bucketItemService.findOne(item._id,nonMatchingBucketId,path,function(err,data){
+        bucketItemService.createOne(bucket,itemData,function(err,item){
+          bucketItemService.findOne({_id:nonMatchingBucketId},item._id,function(err,data){
             should(err).not.be.ok;
             should(data).not.be.ok;
             done();
           });
-
         });
       });
     });
@@ -242,11 +147,11 @@ describe('BucketItem service integration tests', function () {
         should(err).not.be.ok;
         should(bucket).be.ok;
 
-        bucketItemService.createOne(userId,path,itemData,function(err,item){
+        bucketItemService.createOne(bucket,itemData,function(err,item){
           should(err).not.be.ok;
           should(item).be.ok;
 
-          bucketItemService.findOne(item._id,userId,path,function(err,data){
+          bucketItemService.findOne(bucket,item._id,function(err,data){
             should(err).not.be.ok;
             should(data).be.ok;
             data.data.should.eql(123);
@@ -268,25 +173,24 @@ describe('BucketItem service integration tests', function () {
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.deleteOne('wrong',{});
+        bucketItemService.deleteOne('','',null);
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.deleteOne({},{});
+        bucketItemService.deleteOne({},{},function(){});
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.deleteOne(null, {}, function(){});
+        bucketItemService.deleteOne({},mongoose.Types.ObjectId(),function(){});
       }).should.throw(/^Illegal arguments/);
 
       done();
     });
 
     it('fails to delete non existent item', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var userId = mongoose.Types.ObjectId();
-      bucketItemService.deleteOne(id, userId, 'non-matching-path',function(err,data){
+      var bucketId = mongoose.Types.ObjectId();
+      var bucketItemId = mongoose.Types.ObjectId();
+      bucketItemService.deleteOne({_id:bucketId}, bucketItemId, function(err,data){
         should(err).not.be.ok;
         should(data).not.be.ok;
         done();
@@ -308,15 +212,15 @@ describe('BucketItem service integration tests', function () {
         should(err).not.be.ok;
         should(bucket).be.ok;
 
-        bucketItemService.createOne(userId,path,itemData,function(err,item){
+        bucketItemService.createOne(bucket,itemData,function(err,item){
           should(err).not.be.ok;
           should(item).be.ok;
 
-          bucketItemService.deleteOne(item._id, userId, 'non-matching-path',function(err,deletedData){
+          bucketItemService.deleteOne({_id:mongoose.Types.ObjectId()}, item._id, function(err,deletedData){
             should(err).not.be.ok;
             should(deletedData).not.be.ok;
 
-            bucketItemService.findOneById(item._id,function(err,item){
+            bucketItemService.findOne(bucket,item._id,function(err,item){
               should(err).not.be.ok;
               should(item).be.ok;
               item.data.should.eql(123);
@@ -343,15 +247,15 @@ describe('BucketItem service integration tests', function () {
         should(err).not.be.ok;
         should(bucket).be.ok;
 
-        bucketItemService.createOne(userId,path,itemData,function(err,item){
+        bucketItemService.createOne(bucket,itemData,function(err,item){
           should(err).not.be.ok;
           should(item).be.ok;
 
-          bucketItemService.deleteOne(item._id, userId, path,function(err,deletedData){
+          bucketItemService.deleteOne(bucket, item._id, function(err,deletedData){
             should(err).not.be.ok;
             should(deletedData).be.ok;
 
-            bucketItemService.findOneById(deletedData._id,function(err,item){
+            bucketItemService.findOne(bucket, item._id,function(err,item){
               should(err).not.be.ok;
               should(item).not.be.ok;
               done();
@@ -374,23 +278,23 @@ describe('BucketItem service integration tests', function () {
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.list('1','1','1','1',function(){});
+        bucketItemService.list('1','1','1',function(){});
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.list(null,null,{},{},function(){});
+        bucketItemService.list({},{},{},function(){});
       }).should.throw(/^Illegal arguments/);
 
       (function() {
-        bucketItemService.list('1','1', null, null, function(){});
-      }).should.throw(/^Illegal arguments/);
+        bucketItemService.list({_id:mongoose.Types.ObjectId()},{},{}, function(){});
+      }).should.not.throw(/^Illegal arguments/);
 
       done();
     });
 
     it('does not find anything', function (done) {
 
-      bucketItemService.list(mongoose.Types.ObjectId(), '123', {}, {},function(err,items,total){
+      bucketItemService.list({_id:mongoose.Types.ObjectId()}, {}, {},function(err,items,total){
         should(err).not.be.ok;
         items.length.should.eql(0);
         total.should.eql(0);
@@ -407,22 +311,21 @@ describe('BucketItem service integration tests', function () {
         path: path,
         user: userId
       };
-      var bucketId = null;
+      var buck = null;
       var addBucketItem = function(cb) {
-        bucketItemService.createOne(userId,path,{hey:1,ho:[1,2,3]},function(err,data){
+        bucketItemService.createOne(buck,{hey:1,ho:[1,2,3]},function(err,data){
           cb(err,data);
         });
       };
 
       bucketService.createOne(bucketData,function(err,bucket){
-
-        bucketId = bucket._id;
+        buck = bucket;
 
         async.parallel([
           addBucketItem, addBucketItem, addBucketItem, addBucketItem, addBucketItem, addBucketItem
         ], function(bucketItems){
 
-          bucketItemService.list(userId, path, {}, {},function(err,items,total){
+          bucketItemService.list(buck, {}, {},function(err,items,total){
             should(err).not.be.ok;
             items.length.should.eql(6);
             total.should.eql(6);

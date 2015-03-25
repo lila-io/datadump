@@ -1,7 +1,7 @@
 var
   should = require('should'),
   request = require('superagent'),
-  helpers = require('../helpers')
+  helpers = require('../FunctionalTestHelpers')
 ;
 
 describe('Bucket API', function () {

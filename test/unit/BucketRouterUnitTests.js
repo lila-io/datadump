@@ -4,7 +4,6 @@ var
   should = require('should')
   ;
 
-
 describe('bucket router helper method', function () {
 
   describe('buildSearchOptions()', function () {
