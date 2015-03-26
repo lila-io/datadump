@@ -25,8 +25,7 @@ router.use(authAllowAll);
 
 function loadVisibleBucket(req,res,next){
 
-  var bucketId = req.params.bucketId;
-  var userId = null;
+  var bucketId, userId;
 
   if (ras.requiresResourceOwnerIdForOne(req)) {
     if(!ras.resourceOwnerExists(req)){
@@ -34,9 +33,12 @@ function loadVisibleBucket(req,res,next){
     }
     userId = ras.resourceOwnerId(req);
   }
-  if(!bucketId){
+
+  if(!req.params || req.params.bucketId == null){
     return res.status(400).send({errors : ['Bucket not found in path']});
   }
+
+  bucketId = req.params.bucketId;
 
   bucketService.findOne(bucketId, userId, function (err, bucket) {
     if (err != null) {
@@ -55,10 +57,9 @@ function loadVisibleBucket(req,res,next){
 
 function loadEditableBucket(req,res,next){
 
-  var bucketId = req.params.bucketId;
-  var userId = null;
+  var bucketId, userId;
 
-  if(ras.isGuestPath(req)){
+  if(ras.isGuestPath(req) || !req.params || req.params.bucketId == null){
     return res.status(404).end();
   }
 
@@ -71,6 +72,7 @@ function loadEditableBucket(req,res,next){
     return;
   }
 
+  bucketId = req.params.bucketId;
   userId = ras.resourceOwnerId(req);
 
   bucketService.findOne(bucketId, userId, function (err, bucket) {

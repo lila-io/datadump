@@ -107,7 +107,7 @@ RoutePathAccess.prototype.canAccessModifyResourcePath = function (req){
 
 RoutePathAccess.prototype.canModifyResource = function (req,resource){
   req = req || {};
-  return !!(this.isAdmin(req.user) || ( this.isUser(req.user) && (resource.user._id === req.user._id) ))
+  return !!( this.isAdmin(req.user) || this.isSelf(req.user,resource))
 }
 
 module.exports = new RoutePathAccess();
