@@ -23,6 +23,8 @@ var authAllowUser = function(req,res,next){
 
 router.use(authAllowAll);
 
+
+// TODO: change into testable function that is assigned to variable
 function loadVisibleBucket(req,res,next){
 
   var bucketId, userId;
@@ -130,6 +132,12 @@ router.get('/:bucketItemId', function (req, res) {
   }
 
   loadVisibleBucket(req, res, function(err,bucket){
+    if (err != null){
+      return res.status(400).send({errors : [err]});
+    }
+    if (!bucket){
+      return res.status(404).end();
+    }
     bucketItemService.findOne(bucket, bucketItemId, function (err, item) {
       if (err != null){
         return res.status(400).send({errors : [err]});
@@ -145,11 +153,17 @@ router.get('/:bucketItemId', function (req, res) {
 router.get('/', function (req, res) {
 
   loadVisibleBucket(req, res, function(err,bucket){
+    if (err != null){
+      return res.status(400).send({errors : [err]});
+    }
+    if (!bucket){
+      return res.status(404).end();
+    }
     bucketItemService.list(bucket, buildSearchOptions(req), buildPositionalOptions(req), function (err, items, total) {
       if (err != null) {
         return res.status(400).send({errors: [err]});
       }
-      res.send({data : items, total : total});
+      res.send({data: items, total: total});
     });
   });
 
@@ -160,6 +174,12 @@ router.post('/', authAllowUser, function (req, res) {
 	var itemData = req.body || {};
 
   loadEditableBucket(req, res, function(err,bucket){
+    if (err != null){
+      return res.status(400).send({errors : [err]});
+    }
+    if (!bucket){
+      return res.status(404).end();
+    }
     bucketItemService.createOne(bucket, itemData, function (err, item) {
       if (err != null) {
         return res.status(400).send({errors: [err]});
@@ -177,6 +197,12 @@ router.delete('/:bucketItemId', authAllowUser, function (req, res) {
   var bucketItemId = req.params.bucketItemId;
 
   loadEditableBucket(req, res, function(err,bucket){
+    if (err != null){
+      return res.status(400).send({errors : [err]});
+    }
+    if (!bucket){
+      return res.status(404).end();
+    }
     bucketItemService.deleteOne(bucket, bucketItemId, function (err, deleted) {
       if (err != null) {
         return res.status(400).send({errors: [err]});

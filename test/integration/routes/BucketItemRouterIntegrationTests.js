@@ -6,13 +6,13 @@ var
   express = require('express'),
   UrlAccessType = require('../../../server/lib/UrlAccessType'),
   EditableRouteMiddleware = require('../../IntegrationTestHelpers').EditableRouteMiddleware,
-  app,
-  router = rewire('../../../server/routes/bucketItem');
+  app;
 ;
 
 describe('bucket item router path tests', function () {
 
   var editable = new EditableRouteMiddleware();
+  var router = rewire('../../../server/routes/bucketItem');
 
   before(function(){
     app = express();
@@ -21,7 +21,7 @@ describe('bucket item router path tests', function () {
     router.__set__({
       allowAll:function(req,res,next){ next() },
       allowUser:function(req,res,next){ next() }
-    })
+    });
     app.use(router);
   });
 
@@ -369,5 +369,81 @@ describe('bucket item router path tests', function () {
     });
 
   });
+
+  describe('GET /', function () {
+
+    it('fails with error when loading bucket', function (done) {
+      //var revert = router.__set__({
+      //  loadVisibleBucket: function (req, res, cb) {
+      //    throw new Error()
+      //    cb('myError', null)
+      //  }
+      //});
+      request(app)
+        .get('/nnnnnnn/llllll')
+        .expect(/myError/)
+        .expect(400, function (err, res) {
+          //revert();
+          done();
+        });
+    });
+
+    it('returns 404 as bucket was not loaded', function (done) {
+      var revert = router.__set__({
+        loadVisibleBucket: function (req, res, cb) {
+          cb(null, null)
+        }
+      })
+      request(app)
+        .get('/')
+        .expect(404, function (err, res) {
+          revert();
+          done();
+        });
+    });
+
+    it('returns 400 as listing fails with error', function (done) {
+      var revert = router.__set__({
+        loadVisibleBucket: function (req, res, cb) {
+          cb(null, {})
+        },
+        bucketItemService: {
+          list: function(buck,search,pos,cb){
+            cb('myErorr')
+          }
+        }
+      });
+      request(app)
+        .get('/')
+        .expect(function(res){ if(true) return 'missing error' })
+        .expect(400, function (err, res) {
+          revert();
+          done();
+        });
+    });
+
+    it('returns some items', function (done) {
+      var revert = router.__set__({
+        loadVisibleBucket: function (req, res, cb) {
+          cb(null,{})
+        },
+        bucketItemService: {
+          list: function(buck,search,pos,cb){
+            cb(null,[{_id:1},{_id:2},{_id:3}],3)
+          }
+        }
+      });
+      request(app)
+        .get('/')
+        .expect('Content-Type', /json/)
+        .expect(200, function (err, res) {
+          revert();
+          done();
+        });
+    });
+
+  });
+
+
 
 });

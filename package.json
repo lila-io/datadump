@@ -1,7 +1,7 @@
 {
   "name": "datadump",
-  "version": "1.0.0",
-  "private": true,
+  "version": "0.0.0",
+  "private": false,
 
   "engines": {
     "node": ">=1.0",
