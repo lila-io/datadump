@@ -4,7 +4,7 @@ var
   helpers = require('../FunctionalTestHelpers')
 ;
 
-describe('Authentication functional tests', function () {
+describe('Index functional tests', function () {
 
   var serverProcess;
 

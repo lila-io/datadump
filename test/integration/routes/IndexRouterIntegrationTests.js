@@ -29,7 +29,7 @@ describe('playlist router path tests', function () {
       request(app)
         .get('/')
         .expect('Content-Type', /html/)
-        .expect(/This is api/)
+        .expect(/api server/)
         .expect(200, function (err, res) {
           if (err) return done(err);
           done();
