@@ -18,16 +18,17 @@ exports.startServer = function(cb){
   child = fork('server.js', [], {env:{NODE_ENV:'test'}, timeout:10000, silent:true});
 
   child.stderr.on('data', function(data) {
-    //console.error(">>>> error: ",data.toString('utf8'))
+    // console.error(">>>> error: ",data.toString('utf8'))
   });
 
-  //console.log("child pid: ",child.pid);
+  // console.log("child pid: ",child.pid);
 
   child.stdout.on('data', function(data) {
     if( /Listening on port 8080/.test(data) ){
+      // console.log(">>>> server started: ",data.toString('utf8'))
       cb(child);
     } else {
-      //console.log(">>>> data: ",data.toString('utf8'))
+      // console.log(">>>> data: ",data.toString('utf8'))
     }
   });
 
@@ -38,16 +39,16 @@ exports.stopServer = function(child, cb){
   if('function' !== typeof cb)
     throw new Error('Callback must be specified')
 
-  //console.log("stopping server")
+  // console.log("stopping server")
 
   var isKilled;
   if(child) {
-    //console.log("cached child connection being killed")
+    // console.log("cached child connection being killed")
     isKilled = child.kill();
   }
 
   if(isKilled === false){
-    //console.log("could not kill child process")
+    // console.log("could not kill child process")
   }
 
   cb();
@@ -55,7 +56,7 @@ exports.stopServer = function(child, cb){
 
 exports.prepareBuckets = function(cache){
   'use strict';
-  var usernames = ['user', 'jane', 'tom', 'billy', 'superadmin'];
+  var usernames = ['user', 'jane', 'tom', 'billy', 'admin'];
   var operations = [];
 
   usernames.forEach(function(username){
@@ -67,7 +68,7 @@ exports.prepareBuckets = function(cache){
 
 exports.dropBuckets = function(){
   'use strict';
-  var usernames = ['user', 'jane', 'tom', 'billy', 'superadmin'];
+  var usernames = ['user', 'jane', 'tom', 'billy', 'admin'];
   var operations = [];
 
   usernames.forEach(function(username){
@@ -110,7 +111,7 @@ exports.getAdminToken = function(){
   var deferred = q.defer();
   request
     .post('http://localhost:8080/api/auth/login')
-    .send({ username: 'superadmin', password: 'superadmin' })
+    .send({ username: 'admin', password: '123456' })
     .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
     .end(function(err, res){
       should.not.exist(err);

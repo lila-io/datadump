@@ -9,6 +9,7 @@
 
 var mongoose = require('mongoose');
 var q = require('q');
+var config = require('./config')
 var environment = (process.env.NODE_ENV || 'development');
 
 /* jshint newcap:false */
@@ -26,7 +27,6 @@ exports.init = function () {
 	console.log('Running bootstrap.js in environment',environment);
 
   if('test' === environment){
-    mongoose.connection.db.dropDatabase();
     return prepareRoles().then(prepareTestUsers);
   }
 
@@ -39,41 +39,38 @@ exports.init = function () {
     console.log('creating roles');
     return q.all([
       q.ninvoke(Role, 'findOrCreate', 'ROLE_USER'),
-      q.ninvoke(Role, 'findOrCreate', 'ROLE_SUPERADMIN')
+      q.ninvoke(Role, 'findOrCreate', 'ROLE_ADMIN')
     ])
   }
 
   function prepareUsers(roles){
     console.log('creating users with roles:', roles);
     return q.all([
-      createSuperAdminUser(roles)
+      createAdminUser(roles)
     ]);
   }
 
   function prepareTestUsers(roles){
     console.log('creating users with roles:', roles);
     return q.all([
-      createSuperAdminUser(roles),
+      createAdminUser(roles),
       createTestUsers(roles)
     ]);
   }
 
-  function createSuperAdminUser(roles){
-    console.log('setting up superadmin');
-    var role = roles[1];
-    if('ROLE_SUPERADMIN' !== role.authority){
-      throw new Error('Expecting superadmin role')
+  function createAdminUser(roles){
+
+    if(config.admin.setupAdmin){
+      console.log('setting up admin user');
+      var role = roles[1];
+      if('ROLE_ADMIN' !== role.authority){
+        throw new Error('Expecting admin role')
+      }
+      var admin = { username:config.admin.username, password:config.admin.password, authorities:[role._id], enabled:true };
+      return q.ninvoke(User, 'findOrCreate', admin, config.admin.overwritePassword);
     }
-    var superadmin = { username:'superadmin', password:'CHANGEME', authorities:[role._id], enabled:true };
-    switch (environment){
-      case 'test':
-        superadmin.password = 'superadmin';
-        break;
-      case 'development':
-        superadmin.password = 'superadmin';
-        break;
-    }
-    return q.ninvoke(User, 'findOrCreate', superadmin, true);
+
+    return;
   }
 
   function createTestUsers(roles){

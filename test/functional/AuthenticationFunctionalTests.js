@@ -23,7 +23,7 @@ describe('Authentication functional tests', function () {
     });
   });
 
-  describe('Superadmin login', function () {
+  describe('Admin login', function () {
 
     it('fails with 400 as no data sent', function (done) {
 
@@ -189,7 +189,7 @@ describe('Authentication functional tests', function () {
         var deferred = q.defer();
         request
           .post('http://localhost:8080/api/auth/login')
-          .send({ username: 'superadmin', password: 'superadmin' })
+          .send({ username: 'admin', password: '123456' })
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err,res){
             should.exist(res.body.token);

@@ -7,7 +7,7 @@
 'use strict';
 
 var mongoose = require('mongoose');
-var environment = (process.env.NODE_ENV || 'development');
+var config = require('./config')
 var q = require('q');
 
 /**
@@ -17,21 +17,15 @@ var q = require('q');
  */
 exports.init = function (ctx) {
 
-  var
-    deferred = q.defer(),
-    db,
-    dbConfig = { dbUri: '', dbOptions: {} }
-    ;
+  var deferred = q.defer();
+  var db;
+  var dbConfig = { dbUri: config.db.uri, dbOptions: {} };
 
-  switch (environment) {
-    case 'test':
-      dbConfig.dbUri = 'mongodb://localhost/test_db';
-      break;
-    case 'production':
-      dbConfig.dbUri = 'mongodb://localhost/prod_db';
-      break;
-    default:
-      dbConfig.dbUri = 'mongodb://localhost/dev_db';
+  if(config.db.username){
+    dbConfig.dbOptions.user = config.db.username;
+  }
+  if(config.db.password){
+    dbConfig.dbOptions.pass = config.db.password;
   }
 
   console.log('Starting db connection to : ', dbConfig.dbUri);
@@ -42,6 +36,11 @@ exports.init = function (ctx) {
     try {
       ctx.mongooseInstance = db;
     } catch(e){}
+
+    if('test' === process.env.NODE_ENV){
+      db.dropDatabase();
+    }
+
     deferred.resolve(db);
   });
 
@@ -55,7 +54,7 @@ exports.init = function (ctx) {
 };
 
 exports.testDbString = function(){
-  return 'mongodb://localhost/test_db_' + Math.floor((Math.random() * 1000000) + 1);
+  return config.db.uri + '_' + Math.floor((Math.random() * 1000000) + 1);
 };
 
 exports.disconnect = function(fn){

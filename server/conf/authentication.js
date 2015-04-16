@@ -31,44 +31,44 @@ exports.init = function (app) {
   // USERNAME/PASSWORD
   //////////////////////////////
 
+  if (conf.auth.formLoginEnabled) {
+    passport.use(new LocalStrategy(
+      function (username, password, done) {
+        process.nextTick(function () {
 
-  passport.use(new LocalStrategy(
-    function (username, password, done) {
-      process.nextTick(function () {
+          var conditions = {enabled: true};
 
-        var conditions = {enabled: true};
-
-        if ('string' === typeof username && emailValidatorService(username)) {
-          conditions.email = username;
-        } else {
-          conditions.username = username;
-        }
-
-        User.findOne(conditions, function (err, user) {
-
-          if (err) {
-            return done(err);
+          if ('string' === typeof username && emailValidatorService(username)) {
+            conditions.email = username;
+          } else {
+            conditions.username = username;
           }
 
-          if (!user) {
-            return done(null, false, {message: 'Invalid username or password'});
-          }
+          User.findOne(conditions, function (err, user) {
 
-          user.comparePassword(password, function (err, isMatch) {
             if (err) {
               return done(err);
             }
-            if (!isMatch) {
+
+            if (!user) {
               return done(null, false, {message: 'Invalid username or password'});
             }
-            return done(null, user);
+
+            user.comparePassword(password, function (err, isMatch) {
+              if (err) {
+                return done(err);
+              }
+              if (!isMatch) {
+                return done(null, false, {message: 'Invalid username or password'});
+              }
+              return done(null, user);
+            });
+
           });
-
         });
-      });
-    }
-  ));
-
+      }
+    ));
+  }
 
   // BEARER TOKEN
   //////////////////////////////

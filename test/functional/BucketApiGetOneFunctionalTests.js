@@ -235,12 +235,12 @@ describe('Bucket API', function () {
       })
       it('returns my admin public bucket on guest path', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.superadmin.publicBucket._id)
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.admin.publicBucket._id)
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
             res.status.should.eql(200);
-            res.body.data._id.should.eql(tmp.superadmin.publicBucket._id.toString())
+            res.body.data._id.should.eql(tmp.admin.publicBucket._id.toString())
             done();
           });
       })
@@ -256,7 +256,7 @@ describe('Bucket API', function () {
       })
       it('returns 404 on guest path as my admin bucket is not public', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.superadmin.privateBucket._id)
+          .get('http://localhost:8080/api/v1/user/guest/bucket/'+tmp.admin.privateBucket._id)
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
@@ -267,12 +267,12 @@ describe('Bucket API', function () {
 
       it('returns my admin bucket on me path', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/me/bucket/'+tmp.superadmin.privateBucket._id)
+          .get('http://localhost:8080/api/v1/user/me/bucket/'+tmp.admin.privateBucket._id)
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
             res.status.should.eql(200);
-            res.body.data._id.should.eql(tmp.superadmin.privateBucket._id.toString())
+            res.body.data._id.should.eql(tmp.admin.privateBucket._id.toString())
             done();
           });
       })
@@ -299,18 +299,18 @@ describe('Bucket API', function () {
 
       it('returns my admin bucket on my id path', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/'+tmp.superadmin.user._id+'/bucket/'+tmp.superadmin.privateBucket._id)
+          .get('http://localhost:8080/api/v1/user/'+tmp.admin.user._id+'/bucket/'+tmp.admin.privateBucket._id)
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
             res.status.should.eql(200);
-            res.body.data._id.should.eql(tmp.superadmin.privateBucket._id.toString());
+            res.body.data._id.should.eql(tmp.admin.privateBucket._id.toString());
             done();
           });
       })
       it('returns other bucket on my id path', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/'+tmp.superadmin.user._id+'/bucket/'+tmp.jane.privateBucket._id)
+          .get('http://localhost:8080/api/v1/user/'+tmp.admin.user._id+'/bucket/'+tmp.jane.privateBucket._id)
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
@@ -321,7 +321,7 @@ describe('Bucket API', function () {
       })
       it('returns 404 on my id path as bucket does not exist', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/'+tmp.superadmin.user._id+'/bucket/any')
+          .get('http://localhost:8080/api/v1/user/'+tmp.admin.user._id+'/bucket/any')
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
@@ -332,12 +332,12 @@ describe('Bucket API', function () {
 
       it('returns my admin bucket on admin path', function(done){
         request
-          .get('http://localhost:8080/api/v1/user/admin/bucket/'+tmp.superadmin.privateBucket._id)
+          .get('http://localhost:8080/api/v1/user/admin/bucket/'+tmp.admin.privateBucket._id)
           .set('Authorization', helpers.bearerFromToken(token))
           .set('Cache-Control', 'no-cache,no-store,must-revalidate,max-age=-1')
           .end(function(err, res){
             res.status.should.eql(200);
-            res.body.data._id.should.eql(tmp.superadmin.privateBucket._id.toString());
+            res.body.data._id.should.eql(tmp.admin.privateBucket._id.toString());
             done();
           });
       })
