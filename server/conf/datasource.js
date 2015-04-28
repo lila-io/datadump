@@ -1,63 +1,78 @@
-/**
- * datasource.js
- *
- * Database config goes here
- * */
-
 'use strict';
 
-var mongoose = require('mongoose');
+var cassandra = require('cassandra-driver');
 var config = require('./config')
 var q = require('q');
 
-/**
- *
- * @param obj
- * @returns {q.promise}
- */
-exports.init = function (ctx) {
+function Datasource(){
 
-  var deferred = q.defer();
-  var db;
-  var dbConfig = { dbUri: config.db.uri, dbOptions: {} };
+  console.log('Starting db connection to : ', config.db.contactPoints);
 
-  if(config.db.username){
-    dbConfig.dbOptions.user = config.db.username;
-  }
-  if(config.db.password){
-    dbConfig.dbOptions.pass = config.db.password;
-  }
+  // http://docs.datastax.com/en/developer/nodejs-driver/2.0/common/drivers/reference/clientOptions.html
+  this._clientOptions = {
 
-  console.log('Starting db connection to : ', dbConfig.dbUri);
+    /** Array of addresses or host names of the nodes to add as contact point. */
+    contactPoints: config.db.contactPoints
 
-  mongoose.connection.on('open', function () {
-    console.log('[%d] Connected to mongo server.',process.pid);
-    db = mongoose.connection.db;
-    try {
-      ctx.mongooseInstance = db;
-    } catch(e){}
+    /** Contains loadBalancing, retry, reconnection */
+    // policies: {},
 
-    if('test' === process.env.NODE_ENV){
-      db.dropDatabase();
+    /** Default query options */
+    //queryOptions: {},
+
+    /** Contains heartbeatInterval, coreConnectionsPerHost */
+    //pooling: {},
+
+    /** Contains port, maxSchemaAgreementWaitSeconds */
+    //protocolOptions: {},
+
+    /** Contains connectTimeout, keepAlive, keepAliveDelay */
+    //socketOptions: {},
+
+    /** Provider to be used to authenticate to an auth-enabled host. Default: null. */
+    //authProvider: null,
+
+    /** Client-to-node ssl options: when set the driver will use the secure layer.
+     * You can specify cert, ca, ... options named after the Node.js tls.connect options.
+     */
+    //sslOptions: {},
+
+    /** Contains map, set */
+    //encoding: {}
+
+  };
+
+  this._client = null;
+
+  this.init();
+}
+
+
+Datasource.prototype.init = function(){
+  this._client = new cassandra.Client( this._clientOptions );
+
+  // optionally connect to datasource
+  // although when querying this method is
+  // invoked internally all the time
+  this._client.connect(function(err, result) {
+    if(err){
+      throw new Error('Could not connect to datasource', err);
     }
-
-    deferred.resolve(db);
+    console.log('[%d] Connected to cassandra',process.pid);
   });
-
-  mongoose.connection.on('error', function (err) {
-    deferred.reject(err);
-  });
-
-  mongoose.connect(dbConfig.dbUri, dbConfig.dbOptions);
-
-  return deferred.promise;
 };
 
-exports.testDbString = function(){
-  return config.db.uri + '_' + Math.floor((Math.random() * 1000000) + 1);
+Datasource.prototype.getClient = function(){
+  return this._client;
 };
 
-exports.disconnect = function(fn){
-  console.log('[%d] disconnecting from mongoose',process.pid);
-  mongoose.disconnect(fn);
+Datasource.prototype.disconnect = function(cb){
+  return this._client.shutdown(cb);
 };
+
+/**
+ * Export default singleton.
+ *
+ * @api public
+ */
+exports = module.exports = new Datasource();

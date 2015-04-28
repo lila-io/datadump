@@ -36,18 +36,13 @@ var _adminOverwritePassword = (envVar('ADMIN_OVERWRITE_PASSWORD') || _adminOverw
 var adminOverwritePassword = _adminOverwritePassword.toLowerCase() === 'true';
 
 // database
-var dbUriDefault;
-switch (environment) {
-  case 'test':
-    dbUriDefault = 'mongodb://localhost/test_db';
-    break;
-  default:
-    dbUriDefault = 'mongodb://localhost/dev_db';
+var dbContactPoints;
+var _dbContactPoints = (envVar('DB_CONTACT_POINTS') || '127.0.0.1');
+if(_dbContactPoints.indexOf(',')){
+  dbContactPoints = _dbContactPoints.split(',')
+} else {
+  dbContactPoints = [_dbContactPoints];
 }
-var dbUri = (envVar('DB_URI') || dbUriDefault);
-var dbUser = (envVar('DB_USER') || '');
-var dbPassword = (envVar('DB_PASSWORD') || '');
-var dbCollectionPrefix = (envVar('DB_COLLECTION_PREFIX') || (appName+'_'));
 
 // oauth
 var twitterOauthKey = (envVar('TWITTER_OAUTH_KEY') || '');
@@ -83,10 +78,8 @@ var cfg = {
   },
 
   db: {
-    uri: dbUri,
-    username: dbUser,
-    password: dbPassword,
-    prefix: dbCollectionPrefix
+    /** @property {Array} contactPoints Array of addresses or host names of the nodes to add as contact point. */
+    contactPoints: dbContactPoints
   },
 
   port : port,

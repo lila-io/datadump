@@ -1,16 +1,16 @@
 { "asi": true
   , "boss": true
-  , "browser": true
+  , "browser": false
   , "camelcase": true
   , "curly": false
   , "devel": true
   , "eqeqeq": true
   , "eqnull": true
-  , "es5": false
+  , "es5": true
   , "evil": false
   , "immed": false
   , "indent": 2
-  , "jquery": true
+  , "jquery": false
   , "latedef": false
   , "laxbreak": true
   , "laxcomma": true
@@ -27,4 +27,7 @@
   , "trailing": false
   , "undef": true
   , "unused": true
+  , "globals": {
+    "exports": true
+  }
 }

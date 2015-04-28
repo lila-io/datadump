@@ -51,24 +51,22 @@ app.locals.oauthFacebook = !!config.oauth.facebook.key;
 app.locals.oauthGoogle = !!config.oauth.google.key;
 app.locals.target = '';
 
+// Initialize connection to Cassandra
+datasource.init();
 
-// Initialize db
-datasource.init(app)
-
-// Initialize models
-.then(function(){ return q(models.init()) })
+// TODO: Initialize models
+//.then(function(){ return q(models.init()) })
 
 // Set up passport(authentication) module
-.then(function(){ return q(authentication.init(app)) })
+authentication.init(app);
 
 // Setup routes
-.then(function(){ return q(mappings.init(app)) })
+mappings.init(app);
 
 // Run bootstrap
-.then(function(){ return bootstrap.init(); })
+bootstrap.init().done( function(){
 
-// Finally run the app
-.done( function(){
+  // Finally run the app
   app.listen(app.get('port'), function () {
     'use strict';
     console.log('\n');
