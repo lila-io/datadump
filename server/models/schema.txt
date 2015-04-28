@@ -1,0 +1,8 @@
+CREATE KEYSPACE datadump WITH replication = {'class': 'SimpleStrategy', 'replication_factor':'1'};
+create table datadump.buckets ( id int PRIMARY KEY, user_id int, description text, path text, date_created timestamp, last_updated timestamp, is_public boolean );
+create table datadump.bucketItems ( id int PRIMARY KEY, bucket_id int, time timeuuid, data map );
+create table datadump.bucketTokens ( bucket_id int, date_created timestamp, token text, PRIMARY KEY (bucket_id, token)  );
+create table datadump.loginAttempts ( ip text, user text, date_created timestamp, PRIMARY KEY (ip, user) );
+create table datadump.roles ( id int PRIMARY KEY, authority text );
+create table datadump.users ( id int PRIMARY KEY, username text, display_name text, email text, password text, enabled boolean, authorities list, date_created timestamp, last_updated timestamp, twitter map, facebook map, github map, google map );
+create table datadump.userTokens ( user_id int, date_created timestamp, token text, PRIMARY KEY (user_id, token) );
