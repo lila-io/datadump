@@ -1,8 +1,41 @@
-CREATE KEYSPACE datadump WITH replication = {'class': 'SimpleStrategy', 'replication_factor':'1'};
-create table datadump.buckets ( id int PRIMARY KEY, user_id int, description text, path text, date_created timestamp, last_updated timestamp, is_public boolean );
-create table datadump.bucketItems ( id int PRIMARY KEY, bucket_id int, time timeuuid, data map );
-create table datadump.bucketTokens ( bucket_id int, date_created timestamp, token text, PRIMARY KEY (bucket_id, token)  );
-create table datadump.loginAttempts ( ip text, user text, date_created timestamp, PRIMARY KEY (ip, user) );
-create table datadump.roles ( id int PRIMARY KEY, authority text );
-create table datadump.users ( id int PRIMARY KEY, username text, display_name text, email text, password text, enabled boolean, authorities list, date_created timestamp, last_updated timestamp, twitter map, facebook map, github map, google map );
-create table datadump.userTokens ( user_id int, date_created timestamp, token text, PRIMARY KEY (user_id, token) );
+CREATE KEYSPACE IF NOT EXISTS datadump with replication = {'class': 'SimpleStrategy', 'replication_factor':'1'};
+
+CREATE TABLE IF NOT EXISTS datadump.users (
+  username text PRIMARY KEY,
+  password text,
+  authorities list<text>,
+  display_name text,
+  email text,
+  is_enabled boolean,
+  date_created timestamp,
+  last_login timestamp,
+  twitter map<text, text>,
+  facebook map<text, text>,
+  github map<text, text>,
+  google map<text, text>
+);
+
+CREATE TABLE IF NOT EXISTS datadump.login_attempts (
+  ip text,
+  user text,
+  time timestamp,
+  PRIMARY KEY ((ip, user), time)
+) WITH CLUSTERING ORDER BY (time DESC) AND default_time_to_live = 1200;
+
+CREATE TABLE IF NOT EXISTS datadump.buckets (
+  name text,
+  description text,
+  username text,
+  date_created timestamp,
+  is_public boolean,
+  PRIMARY KEY((name, username), date_created)
+);
+
+CREATE TABLE IF NOT EXISTS datadump.bucket_items (
+  time_created timeuuid,
+  year_month  int,
+  bucket_name text,
+  username text,
+  data map<text, text>,
+  PRIMARY KEY((bucket_name, username, year_month), time_created)
+) WITH CLUSTERING ORDER BY (time_created DESC);

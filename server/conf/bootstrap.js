@@ -7,7 +7,7 @@
 
 'use strict';
 
-var mongoose = require('mongoose');
+var datasource = require('./datasource');
 var q = require('q');
 var config = require('./config')
 var environment = (process.env.NODE_ENV || 'development');
@@ -19,55 +19,54 @@ var environment = (process.env.NODE_ENV || 'development');
  */
 exports.init = function () {
 
-	var
-    User = mongoose.model('User'),
-		Role = mongoose.model('Role')
-  ;
+	console.log('Running bootstrap.js in environment', environment);
 
-	console.log('Running bootstrap.js in environment',environment);
+  var applicationRoles = ['ROLE_USER','ROLE_ADMIN']
 
   if('test' === environment){
-    return prepareRoles().then(prepareTestUsers);
+    return prepareTestUsers;
   }
 
-  return prepareRoles().then(prepareUsers);
+  return prepareUsers;
+
 
   // HELPER METHODS
   //////////////////////////
 
-  function prepareRoles(){
-    console.log('creating roles');
+  function prepareUsers(){
     return q.all([
-      q.ninvoke(Role, 'findOrCreate', 'ROLE_USER'),
-      q.ninvoke(Role, 'findOrCreate', 'ROLE_ADMIN')
-    ])
-  }
-
-  function prepareUsers(roles){
-    console.log('creating users with roles:', roles);
-    return q.all([
-      createAdminUser(roles)
+      createAdminUser()
     ]);
   }
 
-  function prepareTestUsers(roles){
-    console.log('creating users with roles:', roles);
+  function prepareTestUsers(){
     return q.all([
-      createAdminUser(roles),
-      createTestUsers(roles)
+      createAdminUser(),
+      createTestUsers()
     ]);
   }
 
-  function createAdminUser(roles){
+  function createAdminUser(){
 
     if(config.admin.setupAdmin){
       console.log('setting up admin user');
-      var role = roles[1];
-      if('ROLE_ADMIN' !== role.authority){
-        throw new Error('Expecting admin role')
-      }
-      var admin = { username:config.admin.username, password:config.admin.password, authorities:[role._id], enabled:true };
-      return q.ninvoke(User, 'findOrCreate', admin, config.admin.overwritePassword);
+
+      var query = 'INSERT INTO users (username, password, authorities, display_name, email, is_enabled, date_created) VALUES (?,?,?,?,?,?,?)';
+      var params = [
+        config.admin.username,
+        config.admin.password,
+        [applicationRoles[1]],
+        'Administrator',
+        null,
+        true,
+        new Date()
+        ];
+
+      datasource.getClient().execute(query, params, {prepare: true}, function(err) {
+        if(err){
+          throw new Error('Failed to add admin user in bootstrap');
+        }
+      });
     }
 
     return;
@@ -75,11 +74,7 @@ exports.init = function () {
 
   function createTestUsers(roles){
     console.log('setting up test users');
-    var role = roles[0];
-    if('ROLE_USER' !== role.authority){
-      throw new Error('Expecting user role')
-    }
-
+    var role = applicationRoles[0];
     return q.all([
       q.ninvoke(User, 'findOrCreate', { username:'user', password:'user', authorities:[role._id], enabled:true }, true),
       q.ninvoke(User, 'findOrCreate', { username:'jane', password:'jane', authorities:[role._id], enabled:true }, true),
