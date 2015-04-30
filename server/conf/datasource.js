@@ -12,7 +12,9 @@ function Datasource(){
   this._clientOptions = {
 
     /** Array of addresses or host names of the nodes to add as contact point. */
-    contactPoints: config.db.contactPoints
+    contactPoints: config.db.contactPoints,
+
+    keyspace: config.db.keyspace,
 
     /** Contains loadBalancing, retry, reconnection */
     // policies: {},
@@ -25,6 +27,8 @@ function Datasource(){
 
     /** Contains port, maxSchemaAgreementWaitSeconds */
     //protocolOptions: {},
+
+    protocolOptions: { "port": config.db.protocol }
 
     /** Contains connectTimeout, keepAlive, keepAliveDelay */
     //socketOptions: {},
@@ -50,7 +54,9 @@ function Datasource(){
 
 Datasource.prototype.init = function(){
   this._client = new cassandra.Client( this._clientOptions );
-
+  this._client.on('log', function(level, className, message, furtherInfo) {
+    console.log('log event: %s -- %s', level, message);
+  });
   // optionally connect to datasource
   // although when querying this method is
   // invoked internally all the time
@@ -60,6 +66,8 @@ Datasource.prototype.init = function(){
     }
     console.log('[%d] Connected to cassandra',process.pid);
   });
+
+
 };
 
 Datasource.prototype.getClient = function(){

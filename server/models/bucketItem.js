@@ -19,4 +19,4 @@ BucketItemSchema = new mongoose.Schema({
   data: { type: Mixed, required:true }
 },{ autoIndex: false, collection: config.db.prefix + 'bucket_item' });
 
-module.exports = mongoose.model('BucketItem', BucketItemSchema);
+module.exports = null //mongoose.model('BucketItem', BucketItemSchema);

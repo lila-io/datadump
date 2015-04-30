@@ -1,6 +1,6 @@
 'use strict';
 
-var BaseModel = require('./_baseModel');
+var BaseModel = require('./baseModel');
 var util = require('util');
 
 function Bucket(){

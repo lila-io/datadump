@@ -1,8 +1,8 @@
 'use strict';
 
 var
-  mongoose = require('mongoose'),
-  UserToken = mongoose.model('UserToken'),
+  mongoose,
+  UserToken,// = mongoose.model('UserToken'),
   tokenService = require('./TokenService')
 ;
 

@@ -1,12 +1,12 @@
 'use strict';
 
 var
-	mongoose = require('mongoose'),
+	mongoose,
 	_ = require('underscore'),
 	async = require('async'),
 	MODELNAME = 'Bucket',
-  ValidatorError = mongoose.Error.ValidatorError,
-  ValidationError = mongoose.Error.ValidationError
+  ValidatorError,// = mongoose.Error.ValidatorError,
+  ValidationError// = mongoose.Error.ValidationError
 ;
 
 exports.findOne = function(itemId, ownerId, cb){

@@ -37,12 +37,15 @@ var adminOverwritePassword = _adminOverwritePassword.toLowerCase() === 'true';
 
 // database
 var dbContactPoints;
-var _dbContactPoints = (envVar('DB_CONTACT_POINTS') || '127.0.0.1');
+var _dbContactPoints = (envVar('DB_CONTACT_POINTS') || '127.0.0.1,192.168.59.103');
 if(_dbContactPoints.indexOf(',')){
   dbContactPoints = _dbContactPoints.split(',')
 } else {
   dbContactPoints = [_dbContactPoints];
 }
+var dbKeyspace = (envVar('DB_KEYSPACE') || 'datadump');
+var dbProtocol = (envVar('DB_PROTOCOL') || '9160');
+
 
 // oauth
 var twitterOauthKey = (envVar('TWITTER_OAUTH_KEY') || '');
@@ -78,8 +81,9 @@ var cfg = {
   },
 
   db: {
-    /** @property {Array} contactPoints Array of addresses or host names of the nodes to add as contact point. */
-    contactPoints: dbContactPoints
+    contactPoints: dbContactPoints,
+    keyspace: dbKeyspace,
+    protocol: dbProtocol
   },
 
   port : port,

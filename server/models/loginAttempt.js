@@ -15,4 +15,4 @@ LoginAttemptSchema = new mongoose.Schema({
 LoginAttemptSchema.index({ ip: 1 });
 LoginAttemptSchema.index({ user: 1 });
 
-module.exports = mongoose.model('LoginAttempt', LoginAttemptSchema);
+module.exports = null //mongoose.model('LoginAttempt', LoginAttemptSchema);

@@ -6,7 +6,7 @@
 'use strict';
 
 var
-  mongoose = require('mongoose'),
+  mongoose,
 	conf = require('../conf/config'),
 	roleCompareService = require('./RoleCompareService')
   ;

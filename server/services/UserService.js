@@ -1,9 +1,9 @@
 'use strict';
 
 var
-  mongoose = require('mongoose'),
-  User = mongoose.model('User'),
-  Role = mongoose.model('Role'),
+  mongoose,
+  User,// = mongoose.model('User'),
+  Role,// = mongoose.model('Role'),
   DEFAULT_ROLE = 'ROLE_USER',
   async = require('async')
 ;

@@ -1,28 +1,34 @@
 'use strict';
 
 var
-	mongoose = require('mongoose'),
 	bcrypt = require('bcrypt'),
 	SALT_WORK_FACTOR = 10,
-	UserSchema,
-	ObjectId = mongoose.Schema.ObjectId,
-  config = require('../conf/config')
+  config = require('../conf/config'),
+  BaseModel = require('./baseModel'),
+  util = require('util');
 ;
 
-UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  displayName: { type: String, default: 'User' },
-  email: { type: String },
-  password: { type: String, required: true, default: Math.random() },
-  enabled: { type: Boolean, required: true, default: true },
-  authorities: [ { type: ObjectId, ref: 'Role' } ],
-  dateCreated: { type: Date, default: Date.now },
-  twitter: {},
-  github: {},
-  facebook: {},
-  google: {}
-},{ autoIndex: false, collection: config.db.prefix + 'user' });
+var UserSchema = new BaseModel({
+  column_family: 'users',
+  columns: {
+    username: {type: 'text'},
+    password: {type: 'text'},
+    display_name: {type: 'text'},
+    email: {type: 'text'},
+    is_enabled: {type: 'boolean'},
+    date_created: {type: 'timestamp'},
+    last_login: {type: 'timestamp'},
+    authorities: {type: 'list<text>'},
+    twitter: {type: 'map<text, text>'},
+    facebook: {type: 'map<text, text>'},
+    github: {type: 'map<text, text>'},
+    google: {type: 'map<text, text>'}
+  }
+});
 
+module.exports = UserSchema;
+
+/*
 UserSchema.pre('save', function (next) {
   var user = this;
 
@@ -104,5 +110,6 @@ UserSchema.statics.findOrCreate = function (data, overwritePassword, cb) {
     }
   });
 };
+*/
 
-module.exports = mongoose.model('User', UserSchema);
+

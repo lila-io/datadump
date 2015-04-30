@@ -2,7 +2,7 @@
 
 var routeAuthenticationService = require('./RouteAuthenticationService');
 var UrlAccessType = require('../lib/UrlAccessType');
-var mongoose = require('mongoose');
+var mongoose;
 
 function RouteUserLoader(){}
 

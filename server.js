@@ -10,10 +10,8 @@ var express = require('express'),
 	config = require('./server/conf/config'),
 	mappings = require('./server/conf/mappings'),
   datasource = require('./server/conf/datasource'),
-  models = require('./server/models/index'),
   authentication = require('./server/conf/authentication'),
-  bootstrap = require('./server/conf/bootstrap'),
-  q = require('q')
+  bootstrap = require('./server/conf/bootstrap')
 ;
 
 // CONFIGURE APP
@@ -54,11 +52,8 @@ app.locals.target = '';
 // Initialize connection to Cassandra
 datasource.init();
 
-// TODO: Initialize models
-//.then(function(){ return q(models.init()) })
-
-// Set up passport(authentication) module
-authentication.init(app);
+// TODO: Set up passport(authentication) module
+//authentication.init(app);
 
 // Setup routes
 mappings.init(app);

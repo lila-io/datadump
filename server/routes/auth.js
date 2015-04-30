@@ -2,8 +2,8 @@
 
 var router = require('express').Router(),
   config = require('../conf/config'),
-  mongoose = require('mongoose'),
-  LoginAttempt = mongoose.model('LoginAttempt'),
+  mongoose,
+  LoginAttempt, // = mongoose.model('LoginAttempt'),
   workflowService = require('../services/WorkflowService'),
   async = require('async'),
   passport = require('passport'),

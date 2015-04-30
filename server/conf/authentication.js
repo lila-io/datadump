@@ -9,7 +9,6 @@
 var
 	conf = require('./config'),
 	emailValidatorService = require('../services/EmailValidatorService'),
-	mongoose = require('mongoose'),
 	passport = require('passport'),
 	LocalStrategy = require('passport-local').Strategy,
   BearerStrategy = require('passport-http-bearer').Strategy,
@@ -24,8 +23,8 @@ exports.init = function (app) {
 
   console.log('Running authentication.js');
 
-  var User = mongoose.model('User');
-  var UserToken = mongoose.model('UserToken');
+  var User
+  var UserToken
 
 
   // USERNAME/PASSWORD

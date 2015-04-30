@@ -1,7 +1,7 @@
 'use strict';
 
 var
-	mongoose = require('mongoose'),
+	mongoose,
 	_ = require('underscore'),
 	async = require('async'),
 	MODELNAME = 'BucketItem'

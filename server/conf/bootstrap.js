@@ -11,6 +11,7 @@ var datasource = require('./datasource');
 var q = require('q');
 var config = require('./config')
 var environment = (process.env.NODE_ENV || 'development');
+var UserSchema = require('../models/user');
 
 /* jshint newcap:false */
 
@@ -24,10 +25,10 @@ exports.init = function () {
   var applicationRoles = ['ROLE_USER','ROLE_ADMIN']
 
   if('test' === environment){
-    return prepareTestUsers;
+    return prepareTestUsers();
   }
 
-  return prepareUsers;
+  return prepareUsers();
 
 
   // HELPER METHODS
@@ -46,40 +47,74 @@ exports.init = function () {
     ]);
   }
 
+  function createUser(data){
+    var deferred = q.defer();
+    var insert = UserSchema.prepareInsertStatement(data);
+    datasource.getClient().execute(insert.query, insert.values, {prepare: true}, function(err){
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve();
+      }
+    });
+    return deferred.promise;
+  }
+
   function createAdminUser(){
 
     if(config.admin.setupAdmin){
       console.log('setting up admin user');
 
-      var query = 'INSERT INTO users (username, password, authorities, display_name, email, is_enabled, date_created) VALUES (?,?,?,?,?,?,?)';
-      var params = [
-        config.admin.username,
-        config.admin.password,
-        [applicationRoles[1]],
-        'Administrator',
-        null,
-        true,
-        new Date()
-        ];
-
-      datasource.getClient().execute(query, params, {prepare: true}, function(err) {
-        if(err){
-          throw new Error('Failed to add admin user in bootstrap');
-        }
+      return createUser({
+        username: config.admin.username,
+        password: config.admin.password,
+        display_name: 'Administrator',
+        is_enabled: true,
+        date_created: new Date(),
+        authorities: [applicationRoles[1]]
       });
     }
 
     return;
   }
 
-  function createTestUsers(roles){
+  function createTestUsers(){
     console.log('setting up test users');
     var role = applicationRoles[0];
     return q.all([
-      q.ninvoke(User, 'findOrCreate', { username:'user', password:'user', authorities:[role._id], enabled:true }, true),
-      q.ninvoke(User, 'findOrCreate', { username:'jane', password:'jane', authorities:[role._id], enabled:true }, true),
-      q.ninvoke(User, 'findOrCreate', { username:'tom', password:'tom', authorities:[role._id], enabled:true }, true),
-      q.ninvoke(User, 'findOrCreate', { username:'billy', password:'billy', authorities:[role._id], enabled:true }, true)
+      createUser({
+        username: 'user',
+        password: 'user',
+        display_name: 'User',
+        is_enabled: true,
+        date_created: new Date(),
+        authorities: [applicationRoles[0]]
+      }),
+      createUser({
+        username: 'jane',
+        password: 'jane',
+        display_name: 'Jane',
+        is_enabled: true,
+        date_created: new Date(),
+        authorities: [applicationRoles[0]]
+      }),
+      createUser({
+        username: 'tom',
+        password: 'tom',
+        display_name: 'Tom',
+        is_enabled: true,
+        date_created: new Date(),
+        authorities: [applicationRoles[0]]
+      }),
+      createUser({
+        username: 'billy',
+        password: 'billy',
+        display_name: 'Billy',
+        is_enabled: true,
+        date_created: new Date(),
+        authorities: [applicationRoles[0]]
+      })
     ])
   }
+
 };
