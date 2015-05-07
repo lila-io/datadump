@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS datadump.user_tokens (
 // login attempts will clear out after 20 minutes
 CREATE TABLE IF NOT EXISTS datadump.login_attempts (
   ip text,
-  user text,
+  username text,
   time timestamp,
   PRIMARY KEY ((ip, user), time)
 ) WITH CLUSTERING ORDER BY (time DESC) AND default_time_to_live = 1200;

@@ -1,22 +1,17 @@
-'use strict';
-
 var
-	mongoose = require('mongoose'),
-  BucketItemSchema,
-	ObjectId = mongoose.Schema.ObjectId,
-  Mixed = mongoose.Schema.Types.Mixed,
-  config = require('../conf/config')
-;
+  config = require('../conf/config'),
+  BaseModel = require('./baseModel')
+  ;
 
-function setNullIfBlank (val) {
-  if ('string' === typeof val && val.trim() === '') val = null;
-  return val;
-}
+var BucketItemSchema = new BaseModel({
+  column_family: 'bucket_items',
+  columns: {
+    time_created: {type: 'timeuuid'},
+    year_month: {type: 'int'},
+    bucket_name: {type: 'text'},
+    username: {type: 'text'},
+    data: {type: 'map<text, text>'}
+  }
+});
 
-BucketItemSchema = new mongoose.Schema({
-  bucket: { type: ObjectId, ref: 'Bucket', required: true, set:setNullIfBlank },
-  dateCreated: { type: Date, default: Date.now, required:true, set:setNullIfBlank },
-  data: { type: Mixed, required:true }
-},{ autoIndex: false, collection: config.db.prefix + 'bucket_item' });
-
-module.exports = null //mongoose.model('BucketItem', BucketItemSchema);
+module.exports = BucketItemSchema;

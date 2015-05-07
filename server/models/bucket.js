@@ -1,18 +1,17 @@
-'use strict';
+var
+  config = require('../conf/config'),
+  BaseModel = require('./baseModel')
+  ;
 
-var BaseModel = require('./baseModel');
-var util = require('util');
-
-function Bucket(){
-  BaseModel.call(this);
-  this.constraints = {
-    user_id: { type: String },
-    description: { type: String },
-    path: { type: String },
-    date_created: { type: Date },
-    is_public: { type: Boolean }
+var BucketSchema = new BaseModel({
+  column_family: 'buckets',
+  columns: {
+    name: {type: 'text'},
+    description: {type: 'text'},
+    username: {type: 'text'},
+    date_created: {type: 'timestamp'},
+    is_public: {type: 'boolean'}
   }
-}
-util.inherits(Bucket, BaseModel);
+});
 
-module.exports = Bucket;
+module.exports = BucketSchema;
