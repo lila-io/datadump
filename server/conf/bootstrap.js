@@ -2,7 +2,7 @@
  * bootstrap.js
  *
  * Create new data here required
- * for app startup. Roles,Users,...
+ * for app startup, e.g. users with roles
  * */
 
 'use strict';
@@ -48,13 +48,14 @@ exports.init = function(app) {
 
   function createUser(data){
     var deferred = q.defer();
-    var insert = UserSchema.prepareInsertStatement(data);
-    app.db.getClient().execute(insert.query, insert.values, {prepare: true}, function(err){
-      if(err) {
-        deferred.reject(err);
-      } else {
-        deferred.resolve();
-      }
+    UserSchema.prepareInsertStatement(data, function(err,statement){
+      app.db.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
+        if(err) {
+          deferred.reject(err);
+        } else {
+          deferred.resolve();
+        }
+      });
     });
     return deferred.promise;
   }

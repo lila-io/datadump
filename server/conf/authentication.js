@@ -8,6 +8,7 @@
 
 var
 	conf = require('./config'),
+  UserSchema = require('../models/user'),
 	emailValidatorService = require('../services/EmailValidatorService'),
 	passport = require('passport'),
 	LocalStrategy = require('passport-local').Strategy,
@@ -35,35 +36,39 @@ exports.init = function (app) {
       function (username, password, done) {
         process.nextTick(function () {
 
-          var conditions = {enabled: true};
+          UserSchema.prepareSelectStatement({username:username},function(err,statement){
+            app.db.getClient().execute(select, null, {prepare: true}, function(err, result){
 
-          if ('string' === typeof username && emailValidatorService(username)) {
-            conditions.email = username;
-          } else {
-            conditions.username = username;
-          }
-
-          User.findOne(conditions, function (err, user) {
-
-            if (err) {
-              return done(err);
-            }
-
-            if (!user) {
-              return done(null, false, {message: 'Invalid username or password'});
-            }
-
-            user.comparePassword(password, function (err, isMatch) {
-              if (err) {
+              if(err) {
                 return done(err);
               }
-              if (!isMatch) {
+
+              // if more than one user found
+              if(!result || result.rowLength > 1 || !result.first()){
                 return done(null, false, {message: 'Invalid username or password'});
               }
-              return done(null, user);
-            });
 
+              var userRow = result.first();
+              var is_enabled = userRow.get('is_enabled');
+
+              if( is_enabled !== true ){
+                return done(null, false, {message: 'Invalid username or password'});
+              }
+
+              var hashedPass = userRow.get('password');
+              UserSchema.compareHashedValues(password, hashedPass, function(err, isMatch){
+                if (err) {
+                  return done(err);
+                }
+                if (!isMatch) {
+                  return done(null, false, {message: 'Invalid username or password'});
+                }
+                return done(null, user);
+              });
+
+            });
           });
+
         });
       }
     ));
