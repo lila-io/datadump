@@ -9,9 +9,9 @@ var express = require('express'),
 	path = require('path'),
 	config = require('./server/conf/config'),
 	mappings = require('./server/conf/mappings'),
-  datasource = require('./server/conf/datasource'),
   authentication = require('./server/conf/authentication'),
-  bootstrap = require('./server/conf/bootstrap')
+  bootstrap = require('./server/conf/bootstrap'),
+  datasource = require('./server/conf/datasource')
 ;
 
 // CONFIGURE APP
@@ -49,8 +49,10 @@ app.locals.oauthFacebook = !!config.oauth.facebook.key;
 app.locals.oauthGoogle = !!config.oauth.google.key;
 app.locals.target = '';
 
-// Initialize connection to Cassandra
-datasource.init();
+///////////////////
+
+// attach datasource instance
+app.db = new datasource.Cassandra();
 
 // TODO: Set up passport(authentication) module
 //authentication.init(app);
@@ -59,7 +61,7 @@ datasource.init();
 mappings.init(app);
 
 // Run bootstrap
-bootstrap.init().done( function(){
+bootstrap.init(app).done( function(){
 
   // Finally run the app
   app.listen(app.get('port'), function () {
@@ -73,24 +75,27 @@ bootstrap.init().done( function(){
   });
 });
 
-
 function exitHandler(options, err) {
 
   if (err) {
     console.log(err.stack);
   }
 
-  if (options.cleanup){
-    datasource.disconnect(function(){
-      console.log('datasource disconnected')
+  if (options.cleanup && app.db){
+    app.db.disconnect(function(){
+      console.log('datasource disconnected');
     });
   }
 
   if (options.exit) {
-    datasource.disconnect(function(){
-      console.log('datasource disconnected')
+    if(app.db){
+      app.db.disconnect(function(){
+        console.log('datasource disconnected');
+        process.exit(0);
+      });
+    } else {
       process.exit(0);
-    });
+    }
   }
 }
 
@@ -102,4 +107,3 @@ process.on('SIGINT', exitHandler.bind(null, {exit:true}));
 
 // catches uncaught exceptions
 process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
-

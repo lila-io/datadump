@@ -7,7 +7,6 @@
 
 'use strict';
 
-var datasource = require('./datasource');
 var q = require('q');
 var config = require('./config')
 var environment = (process.env.NODE_ENV || 'development');
@@ -18,7 +17,7 @@ var UserSchema = require('../models/user');
 /**
  * @returns Promise
  */
-exports.init = function () {
+exports.init = function(app) {
 
 	console.log('Running bootstrap.js in environment', environment);
 
@@ -50,7 +49,7 @@ exports.init = function () {
   function createUser(data){
     var deferred = q.defer();
     var insert = UserSchema.prepareInsertStatement(data);
-    datasource.getClient().execute(insert.query, insert.values, {prepare: true}, function(err){
+    app.db.getClient().execute(insert.query, insert.values, {prepare: true}, function(err){
       if(err) {
         deferred.reject(err);
       } else {

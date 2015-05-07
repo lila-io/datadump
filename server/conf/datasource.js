@@ -1,10 +1,9 @@
 'use strict';
 
 var cassandra = require('cassandra-driver');
-var config = require('./config')
-var q = require('q');
+var config = require('./config');
 
-function Datasource(){
+function Cassandra(){
 
   console.log('Starting db connection to : ', config.db.contactPoints);
 
@@ -12,9 +11,9 @@ function Datasource(){
   this._clientOptions = {
 
     /** Array of addresses or host names of the nodes to add as contact point. */
-    contactPoints: config.db.contactPoints,
+    // contactPoints: [],
 
-    keyspace: config.db.keyspace,
+    // keyspace:'',
 
     /** Contains loadBalancing, retry, reconnection */
     // policies: {},
@@ -27,8 +26,6 @@ function Datasource(){
 
     /** Contains port, maxSchemaAgreementWaitSeconds */
     //protocolOptions: {},
-
-    protocolOptions: { "port": config.db.protocol }
 
     /** Contains connectTimeout, keepAlive, keepAliveDelay */
     //socketOptions: {},
@@ -46,41 +43,60 @@ function Datasource(){
 
   };
 
+  if(config.db.contactPoints){
+    this._clientOptions.contactPoints = config.db.contactPoints;
+  }
+
+  if(config.db.keyspace != null){
+    this._clientOptions.keyspace = config.db.keyspace;
+  }
+
+  if(config.db.protocol != null){
+    this._clientOptions.protocolOptions = this._clientOptions.protocolOptions || {};
+    this._clientOptions.protocolOptions.port = config.db.protocol;
+  }
+
   this._client = null;
 
   this.init();
 }
 
 
-Datasource.prototype.init = function(){
+Cassandra.prototype.init = function(){
+
+  if(this._client){
+    throw new Error("Connection already present");
+  }
+
   this._client = new cassandra.Client( this._clientOptions );
   this._client.on('log', function(level, className, message, furtherInfo) {
     console.log('log event: %s -- %s', level, message);
   });
-  // optionally connect to datasource
-  // although when querying this method is
-  // invoked internally all the time
+  /** optionally connect to Cassandra
+   *  although when querying this method is
+   *  invoked internally all the time
+   */
   this._client.connect(function(err, result) {
     if(err){
-      throw new Error('Could not connect to datasource', err);
+      throw new Error('Could not connect to Cassandra', err);
     }
     console.log('[%d] Connected to cassandra',process.pid);
   });
 
-
 };
 
-Datasource.prototype.getClient = function(){
+Cassandra.prototype.getClient = function(){
+  if(!this._client){
+    return this.init()._client;
+  }
   return this._client;
 };
 
-Datasource.prototype.disconnect = function(cb){
-  return this._client.shutdown(cb);
+Cassandra.prototype.disconnect = function(cb){
+  if(this._client)
+    return this._client.shutdown(cb);
+
+  cb();
 };
 
-/**
- * Export default singleton.
- *
- * @api public
- */
-exports = module.exports = new Datasource();
+exports.Cassandra = Cassandra;
