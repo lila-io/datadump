@@ -8,8 +8,7 @@
 
 var
 	conf = require('./config'),
-  UserSchema = require('../models/user'),
-	emailValidatorService = require('../services/EmailValidatorService'),
+  models = require('../models'),
 	passport = require('passport'),
 	LocalStrategy = require('passport-local').Strategy,
   BearerStrategy = require('passport-http-bearer').Strategy,
@@ -24,10 +23,6 @@ exports.init = function (app) {
 
   console.log('Running authentication.js');
 
-  var User
-  var UserToken
-
-
   // USERNAME/PASSWORD
   //////////////////////////////
 
@@ -36,14 +31,13 @@ exports.init = function (app) {
       function (username, password, done) {
         process.nextTick(function () {
 
-          UserSchema.prepareSelectStatement({username:username},function(err,statement){
-            app.db.getClient().execute(select, null, {prepare: true}, function(err, result){
+          models.user.prepareSelectStatement({username:username},function(err,statement){
+            app.db.getClient().execute(statement, null, {prepare: true}, function(err, result){
 
               if(err) {
                 return done(err);
               }
 
-              // if more than one user found
               if(!result || result.rowLength > 1 || !result.first()){
                 return done(null, false, {message: 'Invalid username or password'});
               }
@@ -56,7 +50,7 @@ exports.init = function (app) {
               }
 
               var hashedPass = userRow.get('password');
-              UserSchema.compareHashedValues(password, hashedPass, function(err, isMatch){
+              models.user.compareHashedValues(password, hashedPass, function(err, isMatch){
                 if (err) {
                   return done(err);
                 }
@@ -81,38 +75,56 @@ exports.init = function (app) {
   passport.use(new BearerStrategy(
     function (token, done) {
 
-      UserToken.findOne({token: token}, function (err, tokenInstance) {
+      models.userToken.prepareSelectStatement({access_token:token},function(err,statement){
+        app.db.getClient().execute(statement, null, {prepare: true}, function(err, result){
 
-        if (err) {
-          return done(err);
-        }
-        if (!tokenInstance) {
-          return done(null, false);
-        }
+          if(err) {
+            return done(err);
+          }
 
-        User.findById(tokenInstance.userId)
-          .populate({path: 'authorities', select: {_id: 1, authority: 1}})
-          .exec(function (err, user) {
-            if (err) {
-              return done(err);
-            }
-            if (!user) {
-              return done(null, false);
-            }
+          if(!result || result.rowLength > 1 || !result.first()){
+            return done(null, false);
+          }
 
-            var userRoles = [];
-            var usrObj = user.toObject();
-            for (var i = 0; i < usrObj.authorities.length; i++) {
-              userRoles.push(usrObj.authorities[i].authority);
-            }
-            if (roleCompareService.rolesHaveAccessFor(userRoles, 'ROLE_ADMIN')) {
-              usrObj.isAdmin = true;
-            }
+          var row = result.first();
+          var username = row.get('username');
 
-            return done(null, usrObj, {scope: 'all'});
-          })
 
+          models.user.prepareSelectStatement({username:username},function(err,statement){
+            app.db.getClient().execute(statement, null, {prepare: true}, function(err, users){
+
+              if(err) {
+                return done(err);
+              }
+
+              if(!users || users.rowLength > 1 || !users.first()){
+                return done(null, false);
+              }
+
+              var userRow = result.first();
+              var is_enabled = userRow.get('is_enabled');
+
+              if( is_enabled !== true ){
+                return done(null, false);
+              }
+
+              var usrObj = {};
+              userRow.keys().forEach(function(fieldName,index,array){
+                usrObj[fieldName] = usrObj.get(fieldName);
+              })
+
+              if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {
+                usrObj.isAdmin = true;
+              }
+
+              return done(null, usrObj, {scope: 'all'});
+
+            });
+          });
+
+        });
       });
+
     }
   ));
 

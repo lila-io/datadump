@@ -54,8 +54,7 @@ app.locals.target = '';
 // attach datasource instance
 app.db = new datasource.Cassandra();
 
-// TODO: Set up passport(authentication) module
-//authentication.init(app);
+authentication.init(app);
 
 // Setup routes
 mappings.init(app);
