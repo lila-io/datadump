@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS datadump.login_attempts (
   ip text,
   username text,
   time timestamp,
-  PRIMARY KEY ((ip, user), time)
+  PRIMARY KEY ((ip, username), time)
 ) WITH CLUSTERING ORDER BY (time DESC) AND default_time_to_live = 1200;
 
 CREATE TABLE IF NOT EXISTS datadump.buckets (
