@@ -8,7 +8,8 @@
 'use strict';
 
 var q = require('q');
-var config = require('./config')
+var config = require('./config');
+var datasource = require('./datasource')
 var environment = (process.env.NODE_ENV || 'development');
 var UserSchema = require('../models/user');
 
@@ -49,7 +50,7 @@ exports.init = function(app) {
   function createUser(data){
     var deferred = q.defer();
     UserSchema.prepareInsertStatement(data, function(err,statement){
-      app.db.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
+      datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
         if(err) {
           deferred.reject(err);
         } else {

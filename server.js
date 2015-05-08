@@ -52,7 +52,7 @@ app.locals.target = '';
 ///////////////////
 
 // attach datasource instance
-app.db = new datasource.Cassandra();
+app.db = datasource;
 
 authentication.init(app);
 

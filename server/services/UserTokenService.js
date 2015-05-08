@@ -1,27 +1,31 @@
 'use strict';
 
 var
-  mongoose,
-  UserToken,// = mongoose.model('UserToken'),
+  models = require('../models'),
   tokenService = require('./TokenService')
 ;
 
-exports.createUserToken = function(userId, cb){
+exports.createUserToken = function(username, cb){
 
   var data = {
-    userId: userId
+    username: username
   };
 
-  if(!userId){
-    throw new Error('User id is required');
+  if(!username){
+    throw new Error('Username is required');
   }
 
   if('function' !== typeof cb){
     throw new Error('Callback is required for tokenGenerator');
   }
 
-  tokenService.generateToken(userId, function(generatedToken){
+  tokenService.generateToken(username, function(generatedToken){
     data.token = generatedToken;
+
+    models.userToken.prepareInsertStatement(data,function(err,statement){
+
+    });
+
     UserToken.create( data, function(err, tokenEntity){
       if(err) {
         return cb(err);
@@ -31,8 +35,8 @@ exports.createUserToken = function(userId, cb){
   });
 };
 
-exports.deleteUserTokens = function(userId, cb){
-  if(!userId){
+exports.deleteUserTokens = function(username, cb){
+  if(!username){
     throw new Error('User id is required');
   }
 
@@ -40,7 +44,7 @@ exports.deleteUserTokens = function(userId, cb){
     throw new Error('Callback is required for tokenGenerator')
   }
 
-  UserToken.remove({userId:userId}, function(err){
+  UserToken.remove({username:username}, function(err){
     if(err) {
       cb(err);
     } else {

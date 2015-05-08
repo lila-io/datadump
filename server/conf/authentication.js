@@ -10,6 +10,7 @@ var
 	conf = require('./config'),
   models = require('../models'),
 	passport = require('passport'),
+  datasource = require('./datasource'),
 	LocalStrategy = require('passport-local').Strategy,
   BearerStrategy = require('passport-http-bearer').Strategy,
 	TwitterStrategy = require('passport-twitter').Strategy,
@@ -32,7 +33,7 @@ exports.init = function (app) {
         process.nextTick(function () {
 
           models.user.prepareSelectStatement({username:username},function(err,statement){
-            app.db.getClient().execute(statement, null, {prepare: true}, function(err, result){
+            datasource.getClient().execute(statement, null, {prepare: true}, function(err, result){
 
               if(err) {
                 return done(err);
@@ -76,7 +77,7 @@ exports.init = function (app) {
     function (token, done) {
 
       models.userToken.prepareSelectStatement({access_token:token},function(err,statement){
-        app.db.getClient().execute(statement, null, {prepare: true}, function(err, result){
+        datasource.getClient().execute(statement, null, {prepare: true}, function(err, result){
 
           if(err) {
             return done(err);
@@ -91,7 +92,7 @@ exports.init = function (app) {
 
 
           models.user.prepareSelectStatement({username:username},function(err,statement){
-            app.db.getClient().execute(statement, null, {prepare: true}, function(err, users){
+            datasource.getClient().execute(statement, null, {prepare: true}, function(err, users){
 
               if(err) {
                 return done(err);
