@@ -99,6 +99,8 @@ Cassandra.prototype.disconnect = function(cb){
   cb();
 };
 
+exports = module.exports = new Cassandra();
+
 exports.Cassandra = Cassandra;
 
-exports = module.exports = new Cassandra();
+

@@ -2,8 +2,9 @@
 
 var router = require('express').Router(),
   config = require('../conf/config'),
-  mongoose,
-  LoginAttempt, // = mongoose.model('LoginAttempt'),
+  datasource = require('../conf/datasource'),
+  models = require('../models'),
+  LoginAttempt,
   workflowService = require('../services/WorkflowService'),
   async = require('async'),
   passport = require('passport'),
@@ -59,7 +60,7 @@ router.post(config.routes.auth.login, function (req, res, next) {
 
   var workflow = workflowService(function (data) {
     if (data && data.success) {
-      userTokenService.createUserToken(req.user._id, function (err, token) {
+      userTokenService.createUserToken(req.user.username, function (err, token) {
         if (err) {
           res.send(500)
         } else {
@@ -74,6 +75,7 @@ router.post(config.routes.auth.login, function (req, res, next) {
   });
 
   workflow.on('validate', function () {
+
     if (!req.body.username || !req.body.password) {
       workflow.outcome.errors.push('username and password are required');
     }
@@ -85,8 +87,7 @@ router.post(config.routes.auth.login, function (req, res, next) {
 
   workflow.on('abuseFilter', function () {
     var getIpCount = function (done) {
-      var conditions = { ip : req.ip };
-      LoginAttempt.count(conditions, function (err, count) {
+      models.loginAttempt.countByIp(req.ip, function(err, count){
         if (err) {
           return done(err);
         }
@@ -95,8 +96,7 @@ router.post(config.routes.auth.login, function (req, res, next) {
     };
 
     var getIpUserCount = function (done) {
-      var conditions = { ip : req.ip, user : req.body.username };
-      LoginAttempt.count(conditions, function (err, count) {
+      models.loginAttempt.countByIpAndUsername(req.ip, req.body.username, function(err, count){
         if (err) {
           return done(err);
         }

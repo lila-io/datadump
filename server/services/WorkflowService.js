@@ -37,6 +37,11 @@ module.exports = exports = function(callback) {
 	var workflow = new Workflow(callback);
 
 	workflow.on('exception', function(err) {
+    console.log([
+        'TIME: ' + (new Date()),
+        'STACK: ' + err.stack
+      ].join('; ')
+    );
 		workflow.outcome.errors.push('Exception: '+ err);
 		return workflow.emit('response');
 	});

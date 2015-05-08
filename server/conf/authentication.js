@@ -33,6 +33,7 @@ exports.init = function (app) {
         process.nextTick(function () {
 
           models.user.prepareSelectStatement({username:username},function(err,statement){
+
             datasource.getClient().execute(statement, null, {prepare: true}, function(err, result){
 
               if(err) {
@@ -58,7 +59,17 @@ exports.init = function (app) {
                 if (!isMatch) {
                   return done(null, false, {message: 'Invalid username or password'});
                 }
-                return done(null, user);
+
+                var usrObj = {};
+                userRow.keys().forEach(function(fieldName,index,array){
+                  usrObj[fieldName] = userRow.get(fieldName);
+                });
+
+                if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {
+                  usrObj.isAdmin = true;
+                }
+
+                return done(null, usrObj);
               });
 
             });
@@ -111,7 +122,7 @@ exports.init = function (app) {
 
               var usrObj = {};
               userRow.keys().forEach(function(fieldName,index,array){
-                usrObj[fieldName] = usrObj.get(fieldName);
+                usrObj[fieldName] = userRow.get(fieldName);
               })
 
               if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {

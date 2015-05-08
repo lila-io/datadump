@@ -7,10 +7,6 @@ var
 
 exports.createUserToken = function(username, cb){
 
-  var data = {
-    username: username
-  };
-
   if(!username){
     throw new Error('Username is required');
   }
@@ -20,17 +16,11 @@ exports.createUserToken = function(username, cb){
   }
 
   tokenService.generateToken(username, function(generatedToken){
-    data.token = generatedToken;
-
-    models.userToken.prepareInsertStatement(data,function(err,statement){
-
-    });
-
-    UserToken.create( data, function(err, tokenEntity){
+    models.userToken.saveTokenForUsername(username, generatedToken, function(err){
       if(err) {
         return cb(err);
       }
-      cb(null,tokenEntity.token);
+      cb(null,generatedToken);
     });
   });
 };

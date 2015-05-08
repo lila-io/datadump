@@ -108,12 +108,12 @@ BaseModel.prototype.prepareSelectStatement = function(data, cb){
     throw new Error('data not provided');
   }
 
-  var query = 'SELECT * FROM ' + this.column_family + ' WHERE ';
+  var query = "SELECT * FROM " + this.column_family + " WHERE ";
 
   fields.forEach(function(fieldName,index,array){
-    query += (fieldName + ' = ' + data[fieldName]);
+    query += (fieldName + " = " + "'" + data[fieldName]) + "'";
     if(index < (array.length - 1)){
-      query += ' AND ';
+      query += " AND ";
     }
   });
 
