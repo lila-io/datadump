@@ -32,47 +32,28 @@ exports.init = function (app) {
       function (username, password, done) {
         process.nextTick(function () {
 
-          models.user.prepareSelectStatement({username:username},function(err,statement){
+          models.user.findByUsername(username, function(err, user){
+            if(err) {
+              return done(err);
+            }
+            if(!user){
+              return done(null, false, {message: 'Invalid username or password'});
+            }
+            if( true !== user.is_enabled ){
+              return done(null, false, {message: 'Invalid username or password'});
+            }
 
-            datasource.getClient().execute(statement, null, {prepare: true}, function(err, result){
-
-              if(err) {
+            models.user.compareHashedValues(password, user.password, function(err, isMatch){
+              if (err) {
                 return done(err);
               }
-
-              if(!result || result.rowLength > 1 || !result.first()){
+              if (!isMatch) {
                 return done(null, false, {message: 'Invalid username or password'});
               }
 
-              var userRow = result.first();
-              var is_enabled = userRow.get('is_enabled');
-
-              if( is_enabled !== true ){
-                return done(null, false, {message: 'Invalid username or password'});
-              }
-
-              var hashedPass = userRow.get('password');
-              models.user.compareHashedValues(password, hashedPass, function(err, isMatch){
-                if (err) {
-                  return done(err);
-                }
-                if (!isMatch) {
-                  return done(null, false, {message: 'Invalid username or password'});
-                }
-
-                var usrObj = {};
-                userRow.keys().forEach(function(fieldName,index,array){
-                  usrObj[fieldName] = userRow.get(fieldName);
-                });
-
-                if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {
-                  usrObj.isAdmin = true;
-                }
-
-                return done(null, usrObj);
-              });
-
+              return done(null, user);
             });
+
           });
 
         });
@@ -102,36 +83,17 @@ exports.init = function (app) {
           var row = result.first();
           var username = row.get('username');
 
-          models.user.prepareSelectStatement({username:username},function(err,statement){
-            datasource.getClient().execute(statement, null, {prepare: true}, function(err, users){
-
-              if(err) {
-                return done(err);
-              }
-
-              if(!users || users.rowLength > 1 || !users.first()){
-                return done(null, false);
-              }
-
-              var userRow = users.first();
-              var is_enabled = userRow.get('is_enabled');
-
-              if( is_enabled !== true ){
-                return done(null, false);
-              }
-
-              var usrObj = {};
-              userRow.keys().forEach(function(fieldName,index,array){
-                usrObj[fieldName] = userRow.get(fieldName);
-              })
-
-              if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {
-                usrObj.isAdmin = true;
-              }
-
-              return done(null, usrObj, {scope: 'all'});
-
-            });
+          models.user.findByUsername(username, function(err, user){
+            if(err) {
+              return done(err);
+            }
+            if(!user){
+              return done(null, false);
+            }
+            if( true !== user.is_enabled ){
+              return done(null, false);
+            }
+            return done(null, user, {scope: 'all'});
           });
 
         });
