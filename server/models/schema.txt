@@ -1,6 +1,8 @@
 CREATE KEYSPACE IF NOT EXISTS datadump with replication = {'class': 'SimpleStrategy', 'replication_factor':'1'};
 
-CREATE TABLE IF NOT EXISTS datadump.users (
+USE datadump;
+
+CREATE TABLE IF NOT EXISTS users (
   username text PRIMARY KEY,
   password text,
   authorities list<text>,
@@ -16,21 +18,21 @@ CREATE TABLE IF NOT EXISTS datadump.users (
 );
 
 // token will live for 15 minutes
-CREATE TABLE IF NOT EXISTS datadump.user_tokens (
+CREATE TABLE IF NOT EXISTS user_tokens (
   access_token text PRIMARY KEY,
   username text,
   time timestamp
 ) WITH default_time_to_live = 900;
 
 // login attempts will clear out after 20 minutes
-CREATE TABLE IF NOT EXISTS datadump.login_attempts (
+CREATE TABLE IF NOT EXISTS login_attempts (
   ip text,
   username text,
   time timestamp,
   PRIMARY KEY ((ip, username), time)
 ) WITH CLUSTERING ORDER BY (time DESC) AND default_time_to_live = 1200;
 
-CREATE TABLE IF NOT EXISTS datadump.buckets (
+CREATE TABLE IF NOT EXISTS buckets (
   name text,
   description text,
   username text,
@@ -39,7 +41,7 @@ CREATE TABLE IF NOT EXISTS datadump.buckets (
   PRIMARY KEY((name, username), date_created)
 );
 
-CREATE TABLE IF NOT EXISTS datadump.bucket_items (
+CREATE TABLE IF NOT EXISTS bucket_items (
   time_created timeuuid,
   year_month  int,
   bucket_name text,

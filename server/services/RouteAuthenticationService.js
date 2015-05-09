@@ -25,7 +25,7 @@ Authentication.prototype.require = function(ROLE){
 
 	return function(req,res,next){
 
-		var i, j, idx, userRolesIds, userRoles = [], authorities, userBeingAuthenticated, userAllowed = false;
+		var i, j, idx, userRoles = [], authorities, userBeingAuthenticated, userAllowed = false;
 
 		function failed(){
       res.status(conf.auth.codes.unauthorized).end();
@@ -76,7 +76,7 @@ Authentication.prototype.require = function(ROLE){
 
 			for (i = roles.length - 1; i >= 0; --i) {
 				idx = i;
-				if(roles[idx].authority === ROLE){
+				if(roles[idx] === ROLE){
           userAllowed = true;
 				}
 			}
@@ -92,14 +92,13 @@ Authentication.prototype.require = function(ROLE){
 
 			for (i = roles.length - 1; i >= 0; --i) {
 				idx = i;
-				pushRoles( roleCompareService.getLowerRoles(roles[idx].authority) );
+				pushRoles( roleCompareService.getLowerRoles(roles[idx]) );
 			}
 
 		}
 
 		function checkUserRole(){
 
-			userRolesIds = [];
 			authorities = userBeingAuthenticated.authorities;
 
 			if (!authorities || authorities.length < 1) {
@@ -109,17 +108,7 @@ Authentication.prototype.require = function(ROLE){
 				return forbidden();
 			}
 
-			if(authorities[0].toString() === '[object Object]'){
-				// user authorities were populated with
-				// actual ROLE docs
-				for(var ii = 0; ii < authorities.length; ii++){
-					userRolesIds.push(authorities[ii]._id);
-				}
-			} else {
-				userRolesIds = authorities;
-			}
-
-			mongoose.model('Role').find({'_id':{$in:userRolesIds}},check);
+      check(null, authorities);
 		}
 
 		if ( req.user ) {
@@ -127,16 +116,16 @@ Authentication.prototype.require = function(ROLE){
 			checkUserRole();
 		} else {
 
-
       if(req.method === 'OPTIONS'){
         res.status(200).end();
         return;
       }
 
+      console.log('authenticating for role',ROLE)
+
       // use req._passport.instance as it is already
       // attached by authentication config
       req._passport.instance.authenticate('bearer', { session: false }, function(error, user){
-
         if(error) return failed();
         if(!user && requireAnonymous()) return next();
         if(!user) return failed();

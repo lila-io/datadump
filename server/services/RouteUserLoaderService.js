@@ -2,7 +2,7 @@
 
 var routeAuthenticationService = require('./RouteAuthenticationService');
 var UrlAccessType = require('../lib/UrlAccessType');
-var mongoose;
+var models = require('../models');
 
 function RouteUserLoader(){}
 
@@ -47,15 +47,16 @@ RouteUserLoader.prototype.setSelfInRequest = function(req,res,next){
 RouteUserLoader.prototype.setUserInRequest = function(id,req,res,next){
   req.resourceOwnerType = UrlAccessType.USER;
   routeAuthenticationService.require('ROLE_USER')(req, res, function(){
-    mongoose.model('User').findById(id, function(userError, userFromPath){
-      if (userError) {
-        console.log('userError',userError);
+
+    models.user.findByUsername(id, function(err,userObj){
+      if (err) {
+        console.log('userError',err);
         return res.status(403).end();
       }
-      if(!userFromPath){
+      if(!userObj){
         return res.status(404).end();
       }
-      req.resourceOwner = userFromPath;
+      req.resourceOwner = userObj;
       next();
     });
   });

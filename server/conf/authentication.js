@@ -88,6 +88,7 @@ exports.init = function (app) {
     function (token, done) {
 
       models.userToken.prepareSelectStatement({access_token:token},function(err,statement){
+
         datasource.getClient().execute(statement, null, {prepare: true}, function(err, result){
 
           if(err) {
@@ -101,7 +102,6 @@ exports.init = function (app) {
           var row = result.first();
           var username = row.get('username');
 
-
           models.user.prepareSelectStatement({username:username},function(err,statement){
             datasource.getClient().execute(statement, null, {prepare: true}, function(err, users){
 
@@ -113,7 +113,7 @@ exports.init = function (app) {
                 return done(null, false);
               }
 
-              var userRow = result.first();
+              var userRow = users.first();
               var is_enabled = userRow.get('is_enabled');
 
               if( is_enabled !== true ){

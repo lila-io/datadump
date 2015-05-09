@@ -14,7 +14,7 @@ var router = require('express').Router(),
 
 function loginUserAndGenerateToken(user, req, res, next) {
   req.user = user;
-  userTokenService.createUserToken(user._id, function (err, token) {
+  userTokenService.createUserToken(user.username, function (err, token) {
     if (err) {
       return next(err);
     } else {
