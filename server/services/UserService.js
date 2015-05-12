@@ -5,17 +5,12 @@ var
   User,// = mongoose.model('User'),
   Role,// = mongoose.model('Role'),
   DEFAULT_ROLE = 'ROLE_USER',
-  async = require('async')
+  async = require('async'),
+  models = require('../models')
 ;
 
-var getRole = function(done){
-  Role.findOne({authority:DEFAULT_ROLE},function(err,role){
-    if (err) {
-      done(err);
-    } else {
-      done(null, role);
-    }
-  })
+var getDefaultRole = function(done){
+  done(null, DEFAULT_ROLE);
 }
 
 var userRoleMerge = function(err, results, cb) {
@@ -27,12 +22,13 @@ var userRoleMerge = function(err, results, cb) {
   }
 
   if(!results.user.authorities.length){
-    User.findByIdAndUpdate(results.user._id, {authorities:[results.role._id]}, function(errrr, uuuuu){
-      if (errrr) {
-        return cb(errrr);
+
+    models.user.addRolesForUsername(results.user.username,[results.role],function(err,user){
+      if (err) {
+        return cb(err);
       }
-      cb(null,uuuuu);
-    })
+      cb(null,user);
+    });
   } else {
     cb(null,results.user);
   }
@@ -42,16 +38,8 @@ var userRoleMerge = function(err, results, cb) {
 
 function getProviderUser(providerName, profile, done) {
 
-  var searchOptions = {};
-  searchOptions[providerName+'.id'] = profile._json.id;
-
-  var updateOptions = {};
-  updateOptions[providerName] = profile._json;
-
   var userProfile = { username: profile._json.id };
   userProfile[providerName] = profile._json;
-
-
 
   if(profile._json.name){
     userProfile.displayName = profile._json.name;
@@ -60,16 +48,19 @@ function getProviderUser(providerName, profile, done) {
     userProfile.email = profile._json.email;
   }
 
-  User.findOneAndUpdate(searchOptions, updateOptions, function(err, user) {
+  models.user.findByProviderProfileAndUpdate(providerName, profile._json, function(err, existingUser) {
     if (err) {
       done(err);
-    } else if(user) {
-      done(null, user);
+    } else if(existingUser) {
+      done(null, existingUser);
     } else {
-      User.create(userProfile, function(errr,usrr){
-        if(errr) done(err);
-        else done(null, usrr);
-      })
+      models.user.insertProviderUser(userProfile, function(err, newUser) {
+        if (err) {
+          done(err);
+        } else {
+          done(null, newUser);
+        }
+      });
     }
   });
 }
@@ -118,7 +109,7 @@ exports.getFacebookUser = function(profile, cb){
     userRoleMerge(err, results, cb)
   };
 
-  async.parallel({ user: getUser, role: getRole }, asyncCallback);
+  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
 
 };
 
@@ -166,7 +157,7 @@ exports.getGoogleUser = function(profile, cb){
     userRoleMerge(err, results, cb)
   };
 
-  async.parallel({ user: getUser, role: getRole }, asyncCallback);
+  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
 
 };
 
@@ -193,7 +184,7 @@ exports.getTwitterUser = function(profile, cb){
     userRoleMerge(err, results, cb)
   };
 
-  async.parallel({ user: getUser, role: getRole }, asyncCallback);
+  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
 
 };
 
@@ -223,6 +214,6 @@ exports.getGithubUser = function(profile, cb){
     userRoleMerge(err, results, cb)
   };
 
-  async.parallel({ user: getUser, role: getRole }, asyncCallback);
+  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
 
 };

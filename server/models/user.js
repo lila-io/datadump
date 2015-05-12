@@ -13,6 +13,20 @@ function User(options){
 }
 util.inherits(User, BaseModel);
 
+User.prototype.addRolesForUsername = function(username, roles, callback){
+  // TODO: update user roles
+  this.findByUsername(username,callback);
+}
+
+
+User.prototype.findByProviderProfileAndUpdate = function(provider,profile,callback){
+  // TODO: find user
+};
+
+User.prototype.insertProviderUser = function(userProfile,callback){
+  // TODO: insert data
+};
+
 User.prototype.findByUsername = function(username, callback){
 
   this.prepareSelectStatement({username:username},function(err,statement){

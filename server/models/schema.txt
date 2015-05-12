@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS users (
   google map<text, text>
 );
 
+CREATE INDEX IF NOT EXISTS ON users (twitter);
+CREATE INDEX IF NOT EXISTS ON users (facebook);
+CREATE INDEX IF NOT EXISTS ON users (github);
+CREATE INDEX IF NOT EXISTS ON users (google);
+
 // token will live for 15 minutes
 CREATE TABLE IF NOT EXISTS user_tokens (
   access_token text PRIMARY KEY,
