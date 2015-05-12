@@ -1,36 +1,26 @@
 'use strict';
 
 var
-  mongoose,
-  User,// = mongoose.model('User'),
-  Role,// = mongoose.model('Role'),
   DEFAULT_ROLE = 'ROLE_USER',
-  async = require('async'),
   models = require('../models')
 ;
 
-var getDefaultRole = function(done){
-  done(null, DEFAULT_ROLE);
-}
+var verifyDefaultRoleExists = function(user, cb) {
 
-var userRoleMerge = function(err, results, cb) {
-
-  if(err) return cb(err);
-
-  if (!results.user) {
-    throw new Error('Could not get/create user based on profile: ', results.user);
+  if (!user) {
+    throw new Error('Could not get/create user based on profile: ', user);
   }
 
-  if(!results.user.authorities.length){
+  if(!user.authorities.length){
 
-    models.user.addRolesForUsername(results.user.username,[results.role],function(err,user){
+    models.user.addRolesForUsername(user.username,[DEFAULT_ROLE],function(err,updatedUser){
       if (err) {
         return cb(err);
       }
-      cb(null,user);
+      cb(null,updatedUser);
     });
   } else {
-    cb(null,results.user);
+    cb(null,user);
   }
 
 };
@@ -38,11 +28,17 @@ var userRoleMerge = function(err, results, cb) {
 
 function getProviderUser(providerName, profile, done) {
 
-  var userProfile = { username: profile._json.id };
+  var userProfile = {
+    username: profile._json.id,
+    password: (Math.random() + ''),
+    authorities: [DEFAULT_ROLE],
+    is_enabled: true,
+    date_created: (new Date())
+  };
   userProfile[providerName] = profile._json;
 
   if(profile._json.name){
-    userProfile.displayName = profile._json.name;
+    userProfile.display_name = profile._json.name;
   }
   if(profile._json.email){
     userProfile.email = profile._json.email;
@@ -52,13 +48,14 @@ function getProviderUser(providerName, profile, done) {
     if (err) {
       done(err);
     } else if(existingUser) {
-      done(null, existingUser);
+      verifyDefaultRoleExists(existingUser, done);
     } else {
-      models.user.insertProviderUser(userProfile, function(err, newUser) {
+      models.user.insertProviderUser(userProfile, function(err) {
         if (err) {
           done(err);
         } else {
-          done(null, newUser);
+          delete userProfile.password;
+          done(null, userProfile);
         }
       });
     }
@@ -101,16 +98,7 @@ exports.getFacebookUser = function(profile, cb){
     throw new Error('Callback is required for getFacebookUser')
   }
 
-  var getUser = function(done) {
-    return getProviderUser('facebook', profile, done);
-  };
-
-  var asyncCallback = function(err, results){
-    userRoleMerge(err, results, cb)
-  };
-
-  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
-
+  getProviderUser('facebook', profile, cb);
 };
 
 
@@ -149,16 +137,7 @@ exports.getGoogleUser = function(profile, cb){
     throw new Error('Callback is required for getGoogleUser')
   }
 
-  var getUser = function(done) {
-    return getProviderUser('google', profile, done);
-  };
-
-  var asyncCallback = function(err, results){
-    userRoleMerge(err, results, cb)
-  };
-
-  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
-
+  getProviderUser('google', profile, cb);
 };
 
 
@@ -176,16 +155,7 @@ exports.getTwitterUser = function(profile, cb){
     throw new Error('Callback is required for getTwitterUser')
   }
 
-  var getUser = function(done) {
-    return getProviderUser('twitter', profile, done);
-  };
-
-  var asyncCallback = function(err, results){
-    userRoleMerge(err, results, cb)
-  };
-
-  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
-
+  getProviderUser('twitter', profile, cb);
 };
 
 
@@ -206,14 +176,5 @@ exports.getGithubUser = function(profile, cb){
     throw new Error('Callback is required for getGithubUser')
   }
 
-  var getUser = function(done) {
-    return getProviderUser('github', profile, done);
-  };
-
-  var asyncCallback = function(err, results){
-    userRoleMerge(err, results, cb)
-  };
-
-  async.parallel({ user: getUser, role: getDefaultRole }, asyncCallback);
-
+  getProviderUser('github', profile, cb);
 };

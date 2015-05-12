@@ -13,6 +13,17 @@ function User(options){
 }
 util.inherits(User, BaseModel);
 
+User.prototype.convertRowToUserObject = function(userRow){
+  var usrObj = {};
+  userRow.keys().forEach(function(fieldName,index,array){
+    usrObj[fieldName] = userRow.get(fieldName);
+  })
+  if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {
+    usrObj.isAdmin = true;
+  }
+  return usrObj;
+};
+
 User.prototype.addRolesForUsername = function(username, roles, callback){
   // TODO: update user roles
   this.findByUsername(username,callback);
@@ -20,11 +31,65 @@ User.prototype.addRolesForUsername = function(username, roles, callback){
 
 
 User.prototype.findByProviderProfileAndUpdate = function(provider,profile,callback){
-  // TODO: find user
+
+  var query = ['SELECT * FROM',this.column_family,'WHERE',provider,'CONTAINS',profile.id].join(' ');
+  datasource.getClient().execute(query, null, {prepare: false}, function(err, users){
+
+    var filteredUsers = [], self = this;
+
+    if(err) {
+      return callback(err);
+    }
+
+    if(!users || users.rowLength === 0){
+      return callback(null,null);
+    }
+
+    // might be more results because of "CONTAINS"
+    // be sure to filter out "in case"
+    users.forEach(function(userRow,index,array){
+      var providerObj = userRow.get(provider);
+      if(providerObj.id === profile.id){
+        filteredUsers.push( self.convertRowToUserObject(userRow) )
+      }
+    });
+
+    if(!filteredUsers.length){
+      return callback(null,null);
+    }
+
+    if(filteredUsers.length > 1){
+      var errMsg = ['Too many users found for provider',provider,'id',profile.id].join(' ');
+      throw new Error(errMsg);
+    }
+
+    var u = filteredUsers[0];
+    u[provider] = profile;
+    var updateObj = {username: u.username};
+    updateObj[provider] = profile;
+
+    self.prepareInsertStatement(updateObj, function(err,statement){
+      datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
+        if(err) {
+          callback(err);
+        } else {
+          callback(null, u);
+        }
+      });
+    });
+  });
 };
 
 User.prototype.insertProviderUser = function(userProfile,callback){
-  // TODO: insert data
+  this.prepareInsertStatement(userProfile, function(err,statement){
+    datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
+      if(err) {
+        callback(err);
+      } else {
+        callback();
+      }
+    });
+  });
 };
 
 User.prototype.findByUsername = function(username, callback){
@@ -41,15 +106,7 @@ User.prototype.findByUsername = function(username, callback){
       }
 
       var userRow = users.first();
-
-      var usrObj = {};
-      userRow.keys().forEach(function(fieldName,index,array){
-        usrObj[fieldName] = userRow.get(fieldName);
-      })
-
-      if (roleCompareService.rolesHaveAccessFor(usrObj.authorities, 'ROLE_ADMIN')) {
-        usrObj.isAdmin = true;
-      }
+      var usrObj = this.convertRowToUserObject(userRow);
 
       callback(null, usrObj);
 
