@@ -1,6 +1,4 @@
-# datadump
-
-[![Build Status](https://travis-ci.org/ivarprudnikov/datadump.svg?branch=master)](https://travis-ci.org/ivarprudnikov/datadump)
+# datadump - in progress
 
 Network application for data aggregation via HTTP REST based API endpoints.
 
@@ -10,7 +8,7 @@ This server app is stateless - there is no session.
 
 ### Datasource
 
-Application datasource is MongoDB. It is tightly integrated with the help of Mongoose.
+Application datasource is Cassandra.
 
 Data is split into couple of models, ones representing users and others - managed data. Managed data is expected
 to be stored within buckets which represent resources, each data item is called bucketItem and is not expected to 
@@ -29,12 +27,13 @@ Authentication using 3rd party can only be done with a browser as authentication
 ### Prerequisites
 
 - node.js
-- mongoDB
+- cassandra
 
 ### Launching
 
 - ensure you are in project dir
-- ensure `mongod` process is running, by default it is expected to run locally on port (27017) without usr/pass
+- ensure `cassandra` is running, by default it is expected to run locally
+- ensure that schema commands which are in server/models/schema.txt are applied `cqlsh > server/models/schema.txt`
 - run `npm install && npm start`
 
 ### Environmental variables - config
@@ -79,7 +78,5 @@ unchanged.
 
 ### Testing
 
-- ensure you are in project dir
-- ensure `mongod` process is running
-- run `npm test`
+not fixed yet
 
