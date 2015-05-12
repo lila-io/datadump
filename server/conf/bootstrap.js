@@ -81,7 +81,6 @@ exports.init = function(app) {
 
   function createTestUsers(){
     console.log('setting up test users');
-    var role = applicationRoles[0];
     return q.all([
       createUser({
         username: 'user',

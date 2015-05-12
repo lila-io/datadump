@@ -16,8 +16,7 @@ var
 	TwitterStrategy = require('passport-twitter').Strategy,
 	GitHubStrategy = require('passport-github').Strategy,
 	FacebookStrategy = require('passport-facebook').Strategy,
-	GoogleStrategy = require('passport-google-oauth').OAuth2Strategy,
-	roleCompareService = require('../services/RoleCompareService')
+	GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
 ;
 
 exports.init = function (app) {

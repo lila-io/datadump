@@ -131,45 +131,17 @@ describe('Route Authentication service tests', function(){
 
 		});
 
-		it('Throws if db throws when searching for roles', function(done){
-			var req = {
-					user : { authorities : ['bla','bla'] }
-				}, res = {}, next = function(something){return something;};
-
-			auth.__set__("mongoose", {
-				model : function(role){
-					return {
-						find : function(obj){ throw new Error('bla') }
-					}
-				}
-			});
-
-			(function(){
-				auth.require('some_role')(req,res,next)
-			}).should.throw('bla');
-
-			done();
-		});
-
-		it('Fails if no roles found in db', function(done){
+		it('Fails if user is set in request and has no roles', function(done){
 			var status,
           nextWasCalled = false,
 				req = {
-					user : { authorities : ['bla'] }
+					user : { authorities : [] }
 				},
         res = {
           status: function(n){ status = n; return res; },
           end: function(){}
         },
         next = function(){ nextWasCalled = true; };
-
-			auth.__set__("mongoose", {
-				model : function(role){
-					return {
-						find : function(obj,cb){ return cb(null,[]) }
-					}
-				}
-			});
 
 			should.not.exist( auth.require('some_role')(req,res,next) );
 
@@ -182,62 +154,19 @@ describe('Route Authentication service tests', function(){
       var status,
           nextWasCalled = false,
           req = {
-            user : { authorities : ['bla'] }
+            user : { authorities : ['matching_role'] }
           },
           res = {
             status: function(n){ status = n; return res; },
             end: function(){}
           },
           next = function(){ nextWasCalled = true; };
-
-			auth.__set__("mongoose", {
-				model : function(role){
-					return {
-						find : function(obj,cb){ return cb(null,[{authority:'matching_role'}]) }
-					}
-				}
-			});
 
       should.not.exist( auth.require('matching_role')(req,res,next) );
       nextWasCalled.should.eql( true );
       done();
 
 		});
-
-
-    it('logs in user if his roles are docs from db and calls next() if role matches', function(done){
-      var status,
-          nextWasCalled = false,
-          req = {
-            _passport: {
-              instance: {
-                authenticate: function(type,options,cb){
-                  return function(request,response){
-                    cb(null, { authorities : [ {_id:'adwawdawd'} ] } );
-                  }
-                }
-              }
-            }
-          },
-          res = {
-            status: function(n){ status = n; return res; },
-            end: function(){}
-          },
-          next = function(){ nextWasCalled = true; };
-
-      auth.__set__("mongoose", {
-        model : function(role){
-          return {
-            find : function(obj,cb){ return cb(null,[{authority:'matching_role'}]) }
-          }
-        }
-      });
-
-      should.not.exist( auth.require('matching_role')(req,res,next) );
-      nextWasCalled.should.eql( true );
-      done();
-
-    });
 
 
     it('calls next for anonymous requirement if request is authenticated and user has roles', function(done){
@@ -251,13 +180,6 @@ describe('Route Authentication service tests', function(){
             end: function(){}
           },
           next = function(){ nextWasCalled = true; };
-      auth.__set__("mongoose", {
-        model : function(role){
-          return {
-            find : function(obj,cb){ return cb(null,[{authority:'some_other_role'}]) }
-          }
-        }
-      });
 
       should.not.exist( auth.require('permitAll')(req,res,next) );
       nextWasCalled.should.eql( true );
@@ -278,15 +200,9 @@ describe('Route Authentication service tests', function(){
           },
           next = function(){ nextWasCalled = true; };
 
-			auth.__set__("mongoose", {
-				model : function(role){
-					return {
-						find : function(obj,cb){ return cb(null,[{authority:'other_role'}]) }
-					}
-				}
-			});
 			auth.__set__("roleCompareService", {
 				getLowerRoles : function(role){
+          role.should.eql( 'bla' );
 					return [];
 				}
 			});
@@ -310,15 +226,9 @@ describe('Route Authentication service tests', function(){
           },
           next = function(){ nextWasCalled = true; };
 
-			auth.__set__("mongoose", {
-				model : function(role){
-					return {
-						find : function(obj,cb){ return cb(null,[{authority:'other_role'}]) }
-					}
-				}
-			});
 			auth.__set__("roleCompareService", {
 				getLowerRoles : function(role){
+          role.should.eql( 'bla' );
 					return ['not_matching_child_role','another_not_matching_role'];
 				}
 			});
@@ -333,22 +243,13 @@ describe('Route Authentication service tests', function(){
       var status,
           nextWasCalled = false,
           req = {
-            user : { authorities : ['bla'] }
+            user : { authorities : ['x','y','z'] }
           },
           res = {
             status: function(n){ status = n; return res; },
             end: function(){}
           },
           next = function(){ nextWasCalled = true; };
-			auth.__set__("mongoose", {
-				model : function(role){
-					return {
-						find : function(obj,cb){
-							return cb(null,[{authority:'x'},{authority:'y'},{authority:'z'}])
-						}
-					}
-				}
-			});
 			auth.__set__("roleCompareService", {
 				getLowerRoles : function(role){
 					if(role === 'z')return ['matching_role'];
