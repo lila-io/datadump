@@ -25,8 +25,23 @@ User.prototype.convertRowToUserObject = function(userRow){
 };
 
 User.prototype.addRolesForUsername = function(username, roles, callback){
-  // TODO: update user roles
-  this.findByUsername(username,callback);
+
+  // UPDATE users SET authorities = authorities + [ 'ROLE_WHATEVER' ] WHERE username = 'frodo';
+
+  var start = [ 'UPDATE',this.column_family,'SET authorities = authorities + [' ];
+  roles.forEach(function(role){
+    start.push(("'"+role+"'"));
+  });
+  var end = [ ']','WHERE username = ',username ];
+  var query = (start.concat(end)).join(' ');
+
+  datasource.getClient().execute(query, null, {prepare: false}, function(err){
+    if(err){
+      callback(err);
+    } else {
+      callback();
+    }
+  });
 }
 
 
@@ -35,7 +50,13 @@ User.prototype.findByProviderProfileAndUpdate = function(provider,profile,callba
   var query = ['SELECT * FROM',this.column_family,'WHERE',provider,'CONTAINS',profile.id].join(' ');
   datasource.getClient().execute(query, null, {prepare: false}, function(err, users){
 
-    var filteredUsers = [], self = this;
+    var filteredUsers = [];
+    var self = this;
+    var errMsg;
+    var u;
+    var existingProfile;
+    var updateIsRequired = false;
+    var updateObj;
 
     if(err) {
       return callback(err);
@@ -59,24 +80,39 @@ User.prototype.findByProviderProfileAndUpdate = function(provider,profile,callba
     }
 
     if(filteredUsers.length > 1){
-      var errMsg = ['Too many users found for provider',provider,'id',profile.id].join(' ');
+      errMsg = ['Too many users found for provider',provider,'id',profile.id].join(' ');
       throw new Error(errMsg);
     }
 
-    var u = filteredUsers[0];
-    u[provider] = profile;
-    var updateObj = {username: u.username};
-    updateObj[provider] = profile;
+    u = filteredUsers[0];
+    existingProfile = u[provider];
 
-    self.prepareInsertStatement(updateObj, function(err,statement){
-      datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
-        if(err) {
-          callback(err);
-        } else {
-          callback(null, u);
-        }
-      });
+    // check if necessary to update
+    Object.keys(existingProfile).forEach(function(key,index,array){
+      if(existingProfile[key] !== profile[key]){
+        updateIsRequired = true;
+      }
     });
+
+    if(!updateIsRequired){
+      callback(null, u);
+    } else {
+
+      u[provider] = profile;
+      updateObj = {username: u.username};
+      updateObj[provider] = profile;
+
+      self.prepareInsertStatement(updateObj, function(err,statement){
+        datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
+          if(err) {
+            callback(err);
+          } else {
+            callback(null, u);
+          }
+        });
+      });
+    }
+
   });
 };
 
