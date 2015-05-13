@@ -33,7 +33,7 @@ Authentication using 3rd party can only be done with a browser as authentication
 
 - ensure you are in project dir
 - ensure `cassandra` is running, by default it is expected to run locally
-- ensure that schema commands which are in server/models/schema.txt are applied `cqlsh > server/models/schema.txt`
+- ensure that schema commands which are in server/models/schema.txt are applied `cqlsh < server/models/schema.txt`
 - run `npm install && npm start`
 
 ### Environmental variables - config
