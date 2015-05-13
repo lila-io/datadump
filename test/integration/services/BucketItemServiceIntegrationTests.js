@@ -1,9 +1,6 @@
 var
-  mongoose = require('mongoose'),
   datasource = require('../../../server/conf/datasource'),
   should = require('should'),
-  BucketItem = require('../../../server/models/bucketItem'),
-  Bucket = require('../../../server/models/bucket'),
   bucketItemService = require('../../../server/services/BucketItemService'),
   bucketService = require('../../../server/services/BucketService'),
   async = require('async')

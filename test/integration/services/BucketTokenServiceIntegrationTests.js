@@ -1,8 +1,6 @@
 var
-  mongoose = require('mongoose'),
   datasource = require('../../../server/conf/datasource'),
   should = require('should'),
-  BucketToken = require('../../../server/models/bucketToken'),
   bucketTokenService = require('../../../server/services/BucketTokenService'),
   async = require('async')
 ;

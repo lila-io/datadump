@@ -2,10 +2,14 @@
 
 var cassandra = require('cassandra-driver');
 var config = require('./config');
+var util = require('../lib/util');
 
-function Cassandra(){
+function Cassandra(overrides){
 
-  console.log('Starting db connection to : ', config.db.contactPoints);
+  overrides = overrides || {};
+  var options = util.extend({},config.db,overrides);
+
+  console.log('Starting db connection to : ', options.contactPoints);
 
   // http://docs.datastax.com/en/developer/nodejs-driver/2.0/common/drivers/reference/clientOptions.html
   this._clientOptions = {
@@ -43,17 +47,17 @@ function Cassandra(){
 
   };
 
-  if(config.db.contactPoints){
-    this._clientOptions.contactPoints = config.db.contactPoints;
+  if(options.contactPoints){
+    this._clientOptions.contactPoints = options.contactPoints;
   }
 
-  if(config.db.keyspace != null){
-    this._clientOptions.keyspace = config.db.keyspace;
+  if(options.keyspace != null){
+    this._clientOptions.keyspace = options.keyspace;
   }
 
-  if(config.db.protocol != null){
+  if(options.protocol != null){
     this._clientOptions.protocolOptions = this._clientOptions.protocolOptions || {};
-    this._clientOptions.protocolOptions.port = config.db.protocol;
+    this._clientOptions.protocolOptions.port = options.protocol;
   }
 
   this._client = null;

@@ -1,0 +1,52 @@
+CREATE KEYSPACE IF NOT EXISTS test_datadump with replication = {'class': 'SimpleStrategy', 'replication_factor':'1'};
+
+CREATE TABLE IF NOT EXISTS test_datadump.users (
+  username text PRIMARY KEY,
+  password text,
+  authorities list<text>,
+  display_name text,
+  email text,
+  is_enabled boolean,
+  date_created timestamp,
+  last_login timestamp,
+  twitter map<text, text>,
+  facebook map<text, text>,
+  github map<text, text>,
+  google map<text, text>
+);
+
+CREATE INDEX IF NOT EXISTS ON test_datadump.users (twitter);
+CREATE INDEX IF NOT EXISTS ON test_datadump.users (facebook);
+CREATE INDEX IF NOT EXISTS ON test_datadump.users (github);
+CREATE INDEX IF NOT EXISTS ON test_datadump.users (google);
+
+CREATE TABLE IF NOT EXISTS test_datadump.user_tokens (
+  access_token text PRIMARY KEY,
+  username text,
+  time timestamp
+) WITH default_time_to_live = 900;
+
+CREATE TABLE IF NOT EXISTS test_datadump.login_attempts (
+  ip text,
+  username text,
+  time timestamp,
+  PRIMARY KEY ((ip, username), time)
+) WITH CLUSTERING ORDER BY (time DESC) AND default_time_to_live = 1200;
+
+CREATE TABLE IF NOT EXISTS test_datadump.buckets (
+  name text,
+  description text,
+  username text,
+  date_created timestamp,
+  is_public boolean,
+  PRIMARY KEY((name, username), date_created)
+);
+
+CREATE TABLE IF NOT EXISTS test_datadump.bucket_items (
+  time_created timeuuid,
+  year_month  int,
+  bucket_name text,
+  username text,
+  data map<text, text>,
+  PRIMARY KEY((bucket_name, username, year_month), time_created)
+) WITH CLUSTERING ORDER BY (time_created DESC);
