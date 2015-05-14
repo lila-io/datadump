@@ -43,7 +43,12 @@ if(_dbContactPoints.indexOf(',')){
 } else {
   dbContactPoints = [_dbContactPoints];
 }
-var dbKeyspace = (envVar('DB_KEYSPACE') || 'datadump');
+var _dbKeyspaceDefault = 'datadump';
+if(environment === 'test'){
+  _dbKeyspaceDefault = 'test_datadump';
+}
+var dbKeyspace = (envVar('DB_KEYSPACE') || _dbKeyspaceDefault);
+
 var dbProtocol = (envVar('DB_PROTOCOL') || null);
 
 

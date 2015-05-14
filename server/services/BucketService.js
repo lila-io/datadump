@@ -1,12 +1,9 @@
 'use strict';
 
 var
-	mongoose,
 	_ = require('underscore'),
 	async = require('async'),
-	MODELNAME = 'Bucket',
-  ValidatorError,// = mongoose.Error.ValidatorError,
-  ValidationError// = mongoose.Error.ValidationError
+  models = require('../models')
 ;
 
 exports.findOne = function(itemId, ownerId, cb){
@@ -44,12 +41,13 @@ exports.findOne = function(itemId, ownerId, cb){
 exports.createOne = function(properties, cb){
 
 	var props = {}, defaults = {
-    user: null,
+    name: '',
     description: '',
-    path: '',
-    isPublic: false,
-    data: []
+    username: null,
+    date_created: new Date(),
+    is_public: false
 	};
+  var bucket;
 
   if(!_.isObject(properties) || !_.isFunction(cb)){
     throw new Error('Illegal arguments, must be: object, callback: ' + Array.prototype.slice.call(arguments));
@@ -57,17 +55,18 @@ exports.createOne = function(properties, cb){
 
 	_.extend(props, defaults, properties);
 
-  mongoose.model(MODELNAME).create(props,function(err,item){
+  bucket = new models.bucket(props);
+  if(!bucket.validate()){
+    return cb(bucket.errors());
+  }
+
+  bucket.save(function(err,res){
     if(err != null){
-      if(err.name === 'MongoError' && err.code === 11000){
-        var newErr = new ValidationError(err);
-        newErr.errors.path = new ValidatorError('path', 'Bucket path should be unique', 'user defined', props.path);
-        return cb(newErr);
-      }
-      return cb(err);
+      return cb(err)
     }
-    cb(null,item);
+    cb(null,bucket);
   });
+
 };
 
 exports.updateOne = function(id, ownerId, properties, cb){

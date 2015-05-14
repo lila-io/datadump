@@ -34,13 +34,14 @@ exports.deleteUserTokens = function(username, cb){
     throw new Error('Callback is required for tokenGenerator')
   }
 
-  UserToken.remove({username:username}, function(err){
-    if(err) {
-      cb(err);
-    } else {
-      cb(null);
-    }
-  });
+  // TODO: fix delete tokens
+  //UserToken.remove({username:username}, function(err){
+  //  if(err) {
+  //    cb(err);
+  //  } else {
+  //    cb(null);
+  //  }
+  //});
 };
 
 

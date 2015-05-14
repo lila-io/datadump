@@ -1,23 +1,19 @@
 var
-  datasource = require('../../../server/conf/datasource'),
   should = require('should'),
   bucketTokenService = require('../../../server/services/BucketTokenService'),
-  async = require('async')
+  async = require('async'),
+  helper = require('../../CassandraHelper')
 ;
 
 describe('BucketToken schema integration tests', function () {
 
-  var dbString = datasource.testDbString();
-
   before(function(done){
-    mongoose.connect(dbString,function(){
-      BucketToken.ensureIndexes(done);
-    });
+    helper.truncateData().then(done);
   });
 
   after(function(done){
-    mongoose.connection.db.dropDatabase(function(){
-      mongoose.disconnect(done);
+    helper.truncateData().then(helper.getTestClient()).then(function(client){
+      client.shutdown(done);
     });
   });
 
@@ -41,14 +37,6 @@ describe('BucketToken schema integration tests', function () {
     });
 
     it('succeeds', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
-      };
-
       bucketTokenService.createOne(id,function(err,data){
         should(err).not.be.ok;
         data._id.should.be.ok;
