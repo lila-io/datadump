@@ -39,8 +39,10 @@ describe('Bucket service integration tests', function () {
       bucketService.createOne({},function(err,data){
         should(data).not.be.ok;
         err.should.be.ok;
-        Object.keys(err.errors).should.have.length(3);
-        err.errors.should.have.keys('description', 'path', 'user');
+        Object.keys(err.errors).should.have.length(2);
+
+        err.errors.should.containEql({error:'name is required'});
+        err.errors.should.containEql({error:'username is required'});
         done();
       });
 
@@ -48,20 +50,21 @@ describe('Bucket service integration tests', function () {
 
     it('succeeds', function (done) {
 
-      var id = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
+        name: 'myBucket',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
         should(err).not.be.ok;
-        data._id.should.be.ok;
+
+        data.date_created.should.be.ok;
+        data.name.should.eql(opts.name);
+        data.username.should.eql(opts.username);
+        data.is_public.should.eql(false);
         data.description.should.eql(opts.description);
-        data.path.should.eql(opts.path);
-        data.user.should.eql(id);
-        data.isPublic.should.eql(false);
+
         done();
       });
 
@@ -69,23 +72,24 @@ describe('Bucket service integration tests', function () {
 
     it('fails to save duplicate as path has to be unique to user', function (done) {
 
-      var id = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
+        name: 'myBucketWhichHasToBeUnique',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
+
         should(err).not.be.ok;
-        data._id.should.be.ok;
+        data.should.be.ok;
 
         bucketService.createOne(opts,function(err1,data1){
+
           should(data1).not.be.ok;
           err1.should.be.ok;
+
           Object.keys(err1.errors).should.have.length(1);
-          err1.errors.should.have.keys('path');
-          err1.errors.path.message.should.eql('Bucket path should be unique');
+          err1.errors.should.containEql({error:'name should be unique'});
           done();
         });
       });
@@ -120,26 +124,27 @@ describe('Bucket service integration tests', function () {
 
     it('fails with validation errors after trying to set nulls', function (done) {
 
-      var id = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
+        name: 'nameUnique',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
-        should(err).not.be.ok;
-        data._id.should.be.ok;
 
-        bucketService.updateOne(data._id, {
+        should(err).not.be.ok;
+        data.should.be.ok;
+
+        bucketService.updateOne(opts.name, opts.username, {
           description: null,
-          path: null,
-          user: null
+          date_created: null,
+          is_public: null
         },function(err1,data1){
           should(data1).not.be.ok;
           err1.should.be.ok;
-          Object.keys(err1.errors).should.have.length(3);
-          err1.errors.should.have.keys('description', 'path', 'user');
+          Object.keys(err1.errors).should.have.length(2);
+          err1.errors.should.containEql({error:'date_created is required'});
+          err1.errors.should.containEql({error:'is_public must be boolean'});
           done();
         });
       });

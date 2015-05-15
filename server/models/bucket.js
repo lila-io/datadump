@@ -1,10 +1,13 @@
-var
-  config = require('../conf/config'),
-  datasource = require('../conf/datasource'),
-  BaseModel = require('./baseModel')
-  ;
+var config = require('../conf/config');
+var datasource = require('../conf/datasource');
+var BaseModel = require('./baseModel');
+var util = require('util');
 
 function Bucket(props){
+
+  if (!(this instanceof Bucket))
+    return new Bucket(props);
+
   BaseModel.call(this, {
     column_family: 'buckets',
     columns: {
@@ -13,64 +16,31 @@ function Bucket(props){
       username: {type: 'text', required: true},
       date_created: {type: 'timestamp', required: true},
       is_public: {type: 'boolean'}
-    }
+    },
+    props: props
   });
-
-  this.props = props;
-  this.allErrors = {errors:[]};
 }
 util.inherits(Bucket, BaseModel);
 
-Bucket.prototype.getRequiredFields = function(){
-  var fields = [], self = this;
-  Object.keys(self.columns).forEach(function(col,idx){
-    if(self.columns[col].required){
-      fields.push(col);
-    }
-  });
-}
-
-Bucket.prototype.validate = function(){
+/**
+ * Check if we have such instances in DB
+ * based on name and username combination
+ */
+Bucket.prototype.isUnique = function(cb){
 
   var self = this;
-  var required = this.getRequiredFields();
+  self.find({ name: self.props.name, username: self.props.username }, function(err, results){
+    if(err){
+      return cb(err)
+    }
 
-  required.forEach(function(key,idx){
-    if(!self.props[key]){
-      self.allErrors.errors.push( {error:(key + ' is required')} )
+    if(results && results.length){
+      self.allErrors.errors.push( {error:'name should be unique'} );
+      cb(null, false);
+    } else {
+      cb(null, true);
     }
   });
-
-  if(self.allErrors.errors.length){
-    return false;
-  }
-
-  return true;
 };
-
-Bucket.prototype.errors = function(){
-  return this.allErrors;
-};
-
-Bucket.prototype.save = function(callback){
-
-  var self = this;
-
-  if(!self.validate()){
-    return callback(self.errors());
-  }
-
-  self.prepareInsertStatement(self.props, function(err,statement){
-    datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
-      if(err) {
-        callback(err);
-      } else {
-        callback(null,self);
-      }
-    });
-  });
-};
-
-Bucket.prototype.delete = function(){};
 
 module.exports = Bucket;

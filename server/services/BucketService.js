@@ -56,50 +56,49 @@ exports.createOne = function(properties, cb){
 	_.extend(props, defaults, properties);
 
   bucket = new models.bucket(props);
+
   if(!bucket.validate()){
     return cb(bucket.errors());
   }
 
-  bucket.save(function(err,res){
-    if(err != null){
-      return cb(err)
+  bucket.isUnique(function(err,isUnique){
+    if(err){
+      return cb(err);
     }
-    cb(null,bucket);
+    if(!isUnique){
+      return cb(bucket.errors());
+    }
+
+    bucket.save(function(err,res){
+      if(err != null){
+        return cb(err)
+      }
+      cb(null,res);
+    });
   });
 
 };
 
-exports.updateOne = function(id, ownerId, properties, cb){
+exports.updateOne = function(name, username, properties, cb){
 
   var
-    args = Array.prototype.slice.call(arguments)
+    args = Array.prototype.slice.call(arguments),
+    where = {name:name, username:username}
     ;
 
-  if(args.length === 3) {
-    cb = args[2];
-    properties = args[1];
-    ownerId = null;
-  }
-
-	if(id == null || !_.isObject(properties) || !_.isFunction(cb)){
-		throw new Error('Illegal arguments, must be: id, ownerId[optional], object, callback: ' + args);
+	if(name == null || username == null || !_.isObject(properties) || !_.isFunction(cb)){
+		throw new Error('Illegal arguments, must be: name, username, object, callback: ' + args);
 	}
 
-  exports.findOne(id, ownerId, function(err,item){
+  delete properties.name;
+  delete properties.username;
+
+  models.bucket().update(where,properties,function(err,res){
     if(err != null){
-      return cb(err);
+      return cb(err)
     }
-    if(item == null){
-      return cb(new Error('Document not found'));
-    }
-    item.set(properties);
-    item.save(function(err,item){
-      if(err != null){
-        return cb(err);
-      }
-      cb(null,item);
-    });
-  });
+    cb(null,res);
+  })
 };
 
 exports.deleteOne = function(id, ownerId, cb){
