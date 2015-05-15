@@ -151,101 +151,39 @@ describe('Bucket service integration tests', function () {
 
     });
 
-    it('fails as item is not found', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-
-      bucketService.updateOne(id, {}, function(err,data){
-        should(data).not.be.ok;
-        err.should.be.ok;
-        done();
-      });
-
-    });
-
-    it('fails as wrong owner is passed', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var id2 = mongoose.Types.ObjectId();
-      var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
-      };
-
-      bucketService.createOne(opts,function(err,data){
-        should(err).not.be.ok;
-        data._id.should.be.ok;
-
-        bucketService.updateOne(data._id, id2, {
-          description: 'new description',
-          path: 'new path',
-          user: id2
-        },function(err1,data1){
-          should(data1).not.be.ok;
-          err1.should.be.ok;
-          done();
-        });
-      });
-    });
+    // TODO: check how upserts if no parent is found
 
     it('succeeds', function (done) {
 
-      var id = mongoose.Types.ObjectId();
-      var id2 = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
+        name: 'nameUnique12345',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
-        should(err).not.be.ok;
-        data._id.should.be.ok;
 
-        bucketService.updateOne(data._id, {
+        should(err).not.be.ok;
+        data.should.be.ok;
+
+        bucketService.updateOne(opts.name, opts.username, {
           description: 'new description',
-          path: 'new path',
-          user: id2
+          date_created: (new Date()),
+          is_public: true
         },function(err1,data1){
           should(err1).not.be.ok;
           data1.should.be.ok;
+
+          data1.name.should.eql(opts.name);
+          data1.username.should.eql(opts.username);
           data1.description.should.eql('new description');
-          data1.path.should.eql('new path');
-          data1.user.should.eql(id2);
+          data1.is_public.should.eql(true);
           done();
         });
       });
+
     });
 
-    it('succeeds with owner', function (done) {
-
-      var id = mongoose.Types.ObjectId();
-      var id2 = mongoose.Types.ObjectId();
-      var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: id
-      };
-
-      bucketService.createOne(opts,function(err,data){
-        should(err).not.be.ok;
-        data._id.should.be.ok;
-
-        bucketService.updateOne(data._id, id, {
-          description: 'new description',
-          path: 'new path',
-          user: id2
-        },function(err1,data1){
-          should(err1).not.be.ok;
-          data1.should.be.ok;
-          data1.description.should.eql('new description');
-          data1.path.should.eql('new path');
-          data1.user.should.eql(id2);
-          done();
-        });
-      });
-    });
   });
 
 

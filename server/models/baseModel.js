@@ -39,6 +39,7 @@ BaseModel.prototype.getRequiredFields = function(){
 BaseModel.prototype.validate = function(data){
 
   var self = this;
+  var isPartialValidation = !!(data)
   var validatableData = data || self.props;
   var required = this.getRequiredFields();
 
@@ -55,7 +56,11 @@ BaseModel.prototype.validate = function(data){
   });
 
   required.forEach(function(key,idx){
-    if(!validatableData[key]){
+    var isValueDefined = (typeof validatableData[key] !== 'undefined');
+    var isNotValidPartial = isPartialValidation && isValueDefined && !validatableData[key];
+    var isNotValidFull = !isPartialValidation && !validatableData[key];
+
+    if(isNotValidPartial || isNotValidFull){
       self.allErrors.errors.push( {error:(key + ' is required')} )
     }
   });
@@ -255,6 +260,7 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
   whereData = whereData || {};
   var self = this;
   var dataNew = {};
+  var length = Object.keys(setData).length;
 
   if(!self.column_family){
     return cb('column_family is not defined');
