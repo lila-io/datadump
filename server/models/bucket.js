@@ -11,10 +11,10 @@ function Bucket(props){
   BaseModel.call(this, {
     column_family: 'buckets',
     columns: {
-      name: {type: 'text', required: true},
+      name: {type: 'text', primary: true},
       description: {type: 'text'},
-      username: {type: 'text', required: true},
-      date_created: {type: 'timestamp', required: true},
+      username: {type: 'text', primary: true},
+      date_created: {type: 'timestamp', primary: true},
       is_public: {type: 'boolean'}
     },
     props: props

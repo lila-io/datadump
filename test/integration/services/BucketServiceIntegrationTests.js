@@ -137,19 +137,44 @@ describe('Bucket service integration tests', function () {
 
         bucketService.updateOne(opts.name, opts.username, {
           description: null,
-          date_created: null,
           is_public: null
         },function(err1,data1){
           should(data1).not.be.ok;
           err1.should.be.ok;
-          Object.keys(err1.errors).should.have.length(2);
-          err1.errors.should.containEql({error:'date_created is required'});
+          Object.keys(err1.errors).should.have.length(1);
           err1.errors.should.containEql({error:'is_public must be boolean'});
           done();
         });
       });
 
     });
+
+    it('fails with validation error after trying to change primary key', function (done) {
+
+      var opts = {
+        name: 'nameUniquead',
+        username: 'tallMan',
+        description: 'long story short'
+      };
+
+      bucketService.createOne(opts,function(err,data){
+
+        should(err).not.be.ok;
+        data.should.be.ok;
+
+        bucketService.updateOne(opts.name, opts.username, {
+          date_created: (new Date())
+        },function(err1,data1){
+          should(data1).not.be.ok;
+          err1.should.be.ok;
+          Object.keys(err1.errors).should.have.length(1);
+          err1.errors.should.containEql({error:'date_created is part of primary key and cannot be changed'});
+          done();
+        });
+      });
+
+    });
+
 
     // TODO: check how upserts if no parent is found
 
@@ -168,7 +193,6 @@ describe('Bucket service integration tests', function () {
 
         bucketService.updateOne(opts.name, opts.username, {
           description: 'new description',
-          date_created: (new Date()),
           is_public: true
         },function(err1,data1){
           should(err1).not.be.ok;

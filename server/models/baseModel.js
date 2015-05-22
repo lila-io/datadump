@@ -5,6 +5,7 @@ var util = require('util');
 var bcrypt = require('bcrypt');
 var SALT_WORK_FACTOR = 10;
 var datasource = require('../conf/datasource');
+var UpdateQueryBuilder = require('./queryBuilder').UpdateQueryBuilder;
 
 
 function BaseModel(options){
@@ -22,47 +23,105 @@ util.inherits(BaseModel, events.EventEmitter);
  * Get required field names
  * @returns {Array}
  */
-BaseModel.prototype.getRequiredFields = function(){
+BaseModel.prototype.getPrimaryFields = function(){
   var fields = [], self = this;
   Object.keys(self.columns).forEach(function(col,idx){
-    if(self.columns[col].required){
+    if(self.columns[col].primary){
       fields.push(col);
     }
   });
   return fields;
 }
 
+BaseModel.prototype._createError = function(errorString){
+  return {error: errorString};
+};
+
+BaseModel.prototype._addError = function(errorString){
+  var err = this._createError(errorString);
+  this.allErrors.errors.push( err );
+};
+
+
+BaseModel.prototype._getPropertyErrors = function(name,value,isUpdate){
+
+  var self = this;
+  var primary = self.getPrimaryFields();
+  var errors = [];
+
+  var isColumnBoolean = self.columns[name].type === 'boolean';
+  var isValueDefined = (typeof value !== 'undefined');
+  var isValueNull = (value === null);
+  var isValueBlank = ((value + '').trim() === '');
+  var isValueBoolean = (typeof value === 'boolean');
+
+  if(isColumnBoolean && isValueDefined && !isValueBoolean){
+    errors.push(self._createError((name + ' must be boolean')));
+  }
+
+  if(!isUpdate){
+
+    if(primary.indexOf(name) > -1 && ( !isValueDefined || isValueNull || isValueBlank) ){
+      errors.push(self._createError((name + ' is required')));
+    }
+
+  } else {
+
+    if(primary.indexOf(name) > -1){
+      errors.push(self._createError((name + ' is part of primary key and cannot be changed')));
+    }
+
+  }
+
+  return errors;
+};
+
+
 /**
  * Check if instance properties match schema requirements
  * @returns {boolean}
  */
-BaseModel.prototype.validate = function(data){
+BaseModel.prototype.validate = function(){
 
   var self = this;
-  var isPartialValidation = !!(data)
-  var validatableData = data || self.props;
-  var required = this.getRequiredFields();
+  var validatableData = self.props || {};
+  var fieldsForValidation = Object.keys(validatableData);
+  var primary = self.getPrimaryFields();
 
-  // first check if type matches
-  Object.keys(self.columns).forEach(function(col,idx){
+  // check required first
+  primary.forEach(function(requiredField){
+    var propErrors = self._getPropertyErrors(requiredField,validatableData[requiredField]);
+    self.allErrors.errors = self.allErrors.errors.concat( propErrors );
+  });
 
-    var isColumnBoolean = self.columns[col].type === 'boolean';
-    var isValueDefined = (typeof validatableData[col] !== 'undefined');
-    var isValueBoolean = (typeof validatableData[col] === 'boolean');
-
-    if(isColumnBoolean && isValueDefined && !isValueBoolean){
-      self.allErrors.errors.push( {error:(col + ' must be boolean')} )
+  fieldsForValidation.forEach(function(name,idx){
+    // skip required fields
+    if(primary.indexOf(name) < 0){
+      var propErrors = self._getPropertyErrors(name,validatableData[name]);
+      self.allErrors.errors = self.allErrors.errors.concat( propErrors );
     }
   });
 
-  required.forEach(function(key,idx){
-    var isValueDefined = (typeof validatableData[key] !== 'undefined');
-    var isNotValidPartial = isPartialValidation && isValueDefined && !validatableData[key];
-    var isNotValidFull = !isPartialValidation && !validatableData[key];
+  if(self.allErrors.errors.length){
+    return false;
+  }
 
-    if(isNotValidPartial || isNotValidFull){
-      self.allErrors.errors.push( {error:(key + ' is required')} )
-    }
+  return true;
+};
+
+/**
+ * Check if payload is not touching primary keys
+ * @param data
+ * @returns {boolean}
+ */
+BaseModel.prototype.validateForUpdate = function(data){
+
+  var self = this;
+  var validatableData = data || {};
+
+  Object.keys(validatableData).forEach(function(name,idx){
+    var propErrors = self._getPropertyErrors(name,validatableData[name],true);
+    self.allErrors.errors = self.allErrors.errors.concat( propErrors );
   });
 
   if(self.allErrors.errors.length){
@@ -139,12 +198,14 @@ BaseModel.prototype.update = function(where,props,callback){
 
   var self = this;
 
-  if(!self.validate(props)){
-    console.log(self.errors())
+  if(!self.validateForUpdate(props)){
     return callback(self.errors());
   }
 
   self.prepareUpdateStatement(where, props, function(err,query){
+    if(err) {
+      return callback(err);
+    }
     datasource.getClient().execute(query, null, null, function(err){
       if(err) {
         return callback(err);
@@ -260,24 +321,30 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
   whereData = whereData || {};
   var self = this;
   var dataNew = {};
-  var length = Object.keys(setData).length;
+  var setDataKeys = Object.keys(setData);
+  var length = setDataKeys.length;
+  var errors = [];
 
   if(!self.column_family){
-    return cb('column_family is not defined');
+    errors.push('column_family is not defined');
   }
 
-  if(!Object.keys(setData).length){
-    return cb('setData not provided');
+  if(!setDataKeys.length){
+    errors.push('setData not provided');
   }
 
   if(!Object.keys(whereData).length){
-    return cb('whereData not provided');
+    errors.push('whereData not provided');
+  }
+
+  if(errors.length){
+    return cb( errors.join('; ') )
   }
 
   /**
    * If value requires to be hashed, convert value
    */
-  Object.keys(setData).forEach(function(fieldName,index,array){
+  setDataKeys.forEach(function(fieldName,index,array){
     if(self.columns[fieldName].hashed){
       self.hashValue(setData[fieldName],function(err,hashed){
         dataNew[fieldName] = hashed;
@@ -294,23 +361,11 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
     length -= 1;
     if(length > 0) return;
 
-    var query = 'UPDATE ' + self.column_family + ' SET ';
-
-    Object.keys(dataNew).forEach(function(fieldName,index,array){
-      query += (fieldName + " = " + "'" + dataNew[fieldName]) + "'";
-      if(index < (array.length - 1)){
-        query += ", ";
-      }
-    });
-
-    query += " WHERE ";
-
-    Object.keys(whereData).forEach(function(fieldName,index,array){
-      query += (fieldName + " = " + "'" + whereData[fieldName]) + "'";
-      if(index < (array.length - 1)){
-        query += " AND ";
-      }
-    });
+    var query = UpdateQueryBuilder()
+      .setColumnFamily(self.column_family)
+      .setValues(dataNew)
+      .setMatches(whereData)
+      .build();
 
     cb(null, query);
   }
