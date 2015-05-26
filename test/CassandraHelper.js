@@ -1,4 +1,4 @@
-var datasource = require('../server/conf/datasource');
+var cassandra = require('cassandra-driver');
 var config = require('../server/conf/config')
 var fs = require('fs');
 var path = require('path');
@@ -41,20 +41,16 @@ CassandraHelper.prototype.getTestClient = function(){
 
   } else if(self._initializing){
 
-    console.log("checking promise")
-
     self._initializing.then(function(){
 
-      console.log("promise finished")
-
-      var instance = new datasource.Cassandra({
+      var instance = new cassandra.Client({
         contactPoints: self.contactPoints,
         keyspace: self.keyspace
       });
-
-      self._client = instance.getClient();
-
-      deferred.resolve(self._client);
+      //instance.on('log', function(level, className, message, furtherInfo) {
+      //  console.log('log event: %s -- %s', level, message);
+      //});
+      deferred.resolve(instance);
 
     });
 
@@ -102,12 +98,12 @@ CassandraHelper.prototype.setupTestSchema = function(callback){
 
   var self = this;
 
-  var cass = new datasource.Cassandra({
+  var cass = new cassandra.Client({
     contactPoints: self.contactPoints,
     keyspace: null
   });
 
-  cass.getClient().connect(function(err, result) {
+  cass.connect(function(err, result) {
     if(err){
       throw new Error('Could not connect to Cassandra', err);
     }
@@ -122,8 +118,12 @@ CassandraHelper.prototype.setupTestSchema = function(callback){
     // split queries as does not work when batched
     var queries = trimmed_text.split(';');
 
-    self.executeManyWithClient(queries,cass.getClient()).then(function(){
-      cass.disconnect(callback)
+    self.executeManyWithClient(queries,cass).then(function(){
+
+      if(cass)
+        return cass.shutdown(callback);
+
+      callback();
     }).done();
 
   });
@@ -142,10 +142,7 @@ CassandraHelper.prototype.executeManyWithClient = function(queries, client){
 
     var fn = function(){
       var deferred = Q.defer();
-      console.log("promise started",idx)
-      console.log("query",query)
       client.execute( query, null, null, function(err, res){
-        console.log("promise finished",idx)
         if(err){
           deferred.reject(err);
         } else {

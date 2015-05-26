@@ -3,97 +3,117 @@
 var cassandra = require('cassandra-driver');
 var config = require('./config');
 var util = require('../lib/util');
+var path = require('path');
+var Q = require('q');
+
+/**
+ * REFACTORING TO SUIT BOTH PRODUCTION AND TESTS
+ *
+ * @param overrides
+ * @constructor
+ */
+
 
 function Cassandra(overrides){
 
+  if( ! this instanceof Cassandra ){
+    throw new Error('Must be called with `new` operator');
+  }
+
   overrides = overrides || {};
-  var options = util.extend({},config.db,overrides);
+  var options = util.extend({}, config.db, overrides);
+
+  /**
+   * If schema name is set then in test env it is gonna be updated
+   * @type {null|*|test_schema}
+   */
+  this.schemaName = overrides.schemaName || null;
+  this.schemaEncoding = 'utf8';
 
   console.log('Starting db connection to : ', options.contactPoints);
 
-  // http://docs.datastax.com/en/developer/nodejs-driver/2.0/common/drivers/reference/clientOptions.html
-  this._clientOptions = {
-
-    /** Array of addresses or host names of the nodes to add as contact point. */
-    // contactPoints: [],
-
-    // keyspace:'',
-
-    /** Contains loadBalancing, retry, reconnection */
-    // policies: {},
-
-    /** Default query options */
-    //queryOptions: {},
-
-    /** Contains heartbeatInterval, coreConnectionsPerHost */
-    //pooling: {},
-
-    /** Contains port, maxSchemaAgreementWaitSeconds */
-    //protocolOptions: {},
-
-    /** Contains connectTimeout, keepAlive, keepAliveDelay */
-    //socketOptions: {},
-
-    /** Provider to be used to authenticate to an auth-enabled host. Default: null. */
-    //authProvider: null,
-
-    /** Client-to-node ssl options: when set the driver will use the secure layer.
-     * You can specify cert, ca, ... options named after the Node.js tls.connect options.
-     */
-    //sslOptions: {},
-
-    /** Contains map, set */
-    //encoding: {}
-
-  };
+  /**
+   * http://docs.datastax.com/en/developer/nodejs-driver/2.0/common/drivers/reference/clientOptions.html
+   * @type {{}}
+   * @private
+   */
+  this._clientOptions = {};
 
   if(options.contactPoints){
     this._clientOptions.contactPoints = options.contactPoints;
   }
-
   if(options.keyspace != null){
     this._clientOptions.keyspace = options.keyspace;
   }
-
   if(options.protocol != null){
     this._clientOptions.protocolOptions = this._clientOptions.protocolOptions || {};
     this._clientOptions.protocolOptions.port = options.protocol;
   }
 
   this._client = null;
+  this._initializing = null;
 
-  this.init();
+  this._init();
 }
 
+/**
+ * @private
+ */
+Cassandra.prototype._init = function(){
 
-Cassandra.prototype.init = function(){
+  var self = this;
+  var deferred = Q.defer();
 
-  if(this._client){
-    throw new Error("Connection already present");
+  if(self._client || self._initializing){
+    throw new Error("Connection already present or in progress");
   }
 
-  this._client = new cassandra.Client( this._clientOptions );
-  this._client.on('log', function(level, className, message, furtherInfo) {
-    console.log('log event: %s -- %s', level, message);
-  });
-  /** optionally connect to Cassandra
-   *  although when querying this method is
-   *  invoked internally all the time
-   */
-  this._client.connect(function(err, result) {
-    if(err){
-      throw new Error('Could not connect to Cassandra', err);
-    }
-    console.log('[%d] Connected to cassandra',process.pid);
+  self._executeSchemaQueries().then(function(){
+
+    self._client = new cassandra.Client( self._clientOptions );
+    self._client.on('log', function(level, className, message, furtherInfo) {
+      console.log('log event: %s -- %s', level, message);
+    });
+
+    /** optionally connect to Cassandra
+     *  although when querying this method is
+     *  invoked internally all the time
+     */
+    self._client.connect(function(err, result) {
+      if(err){
+        throw new Error('Could not connect to Cassandra', err);
+      }
+      console.log('[%d] Connected to cassandra',process.pid, 'to keyspace', self._clientOptions.keyspace);
+
+      deferred.resolve();
+    });
+
   });
 
+  self._initializing = deferred.promise;
 };
 
+/**
+ * @returns {promise}
+ */
 Cassandra.prototype.getClient = function(){
-  if(!this._client){
-    return this.init()._client;
+
+  var deferred = Q.defer();
+  var self = this;
+
+  if(self._client === null){
+    self._initializing.then(function(){
+      if(!self._client){
+        deferred.reject('could not obtain client after initialization');
+      } else {
+        deferred.resolve(self._client);
+      }
+    });
+  } else {
+    deferred.resolve(self._client);
   }
-  return this._client;
+
+  return deferred.promise;
 };
 
 Cassandra.prototype.disconnect = function(cb){
@@ -101,6 +121,93 @@ Cassandra.prototype.disconnect = function(cb){
     return this._client.shutdown(cb);
 
   cb();
+};
+
+/**
+ * Parse schema file and execute queries one by one
+ * against connected Cassandra cluster.
+ * Shut down afterwards and reinitialize client
+ * with test keyspace name, so that queries work.
+ * @private
+ * returns {promise}
+ */
+Cassandra.prototype._executeSchemaQueries = function(){
+
+  var self = this;
+  var deferred = Q.defer();
+  var schemaFile;
+  var cass;
+
+  if(self.schemaName){
+
+    schemaFile = path.join( __dirname, '../models/', self.schemaName );
+
+    cass = new cassandra.Client({
+      contactPoints: self._clientOptions.contactPoints,
+      keyspace: null
+    });
+
+    cass.connect(function(err, result) {
+      if(err){
+        throw new Error('Could not connect to Cassandra', err);
+      }
+      console.log('[%d] Executing commands from', schemaFile);
+
+      // parse contents
+      var text = fs.readFileSync(schemaFile, {encoding: self.schemaEncoding});
+
+      // remove new lines
+      var trimmed_text = text.replace(/(\r\n|\n|\r)/gm,"");
+
+      // split queries as does not work when batched
+      var queries = trimmed_text.split(';');
+
+      self._executeManyWithClient(queries,cass).then(function(){
+        cass.shutdown(function(){
+          deferred.resolve();
+        });
+      }).done();
+
+    });
+
+  } else {
+    deferred.resolve();
+  }
+
+  return deferred.promise;
+};
+
+/**
+ * @private
+ * returns {promise}
+ */
+Cassandra.prototype._executeManyWithClient = function(queries, client){
+
+  var tasks = [];
+
+  queries.forEach(function(query,idx){
+
+    if(!query || !query.trim()) return;
+
+    var fn = function(){
+      var deferred = Q.defer();
+      client.execute( query, null, null, function(err, res){
+        if(err){
+          deferred.reject(err);
+        } else {
+          deferred.resolve(res);
+        }
+      });
+      return deferred.promise;
+    }
+
+    tasks.push(fn);
+
+  });
+
+  return tasks.reduce(function (soFar, f) {
+    return soFar.then(f);
+  }, Q(function(){ return true; }));
 };
 
 exports = module.exports = new Cassandra();

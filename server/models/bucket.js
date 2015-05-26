@@ -1,5 +1,4 @@
 var config = require('../conf/config');
-var datasource = require('../conf/datasource');
 var BaseModel = require('./baseModel');
 var util = require('util');
 
@@ -14,7 +13,7 @@ function Bucket(props){
       name: {type: 'text', primary: true},
       description: {type: 'text'},
       username: {type: 'text', primary: true},
-      date_created: {type: 'timestamp', primary: true},
+      date_created: {type: 'timestamp'},
       is_public: {type: 'boolean'}
     },
     props: props

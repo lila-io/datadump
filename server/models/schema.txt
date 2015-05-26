@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS buckets (
   username text,
   date_created timestamp,
   is_public boolean,
-  PRIMARY KEY((name, username), date_created)
+  PRIMARY KEY(name, username)
 );
 
 CREATE TABLE IF NOT EXISTS bucket_items (

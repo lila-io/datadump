@@ -12,6 +12,7 @@ describe('Bucket service integration tests', function () {
   });
 
   after(function(done){
+    done();
     helper.truncateData().then(done);
   });
 
