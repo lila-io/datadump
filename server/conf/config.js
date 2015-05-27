@@ -49,6 +49,16 @@ if(environment === 'test'){
 }
 var dbKeyspace = (envVar('DB_KEYSPACE') || _dbKeyspaceDefault);
 
+
+var _dbSchemaDefault = null;
+if(environment === 'test'){
+  _dbSchemaDefault = 'test_schema.txt';
+} else if(environment === 'development'){
+  _dbSchemaDefault = 'schema.txt';
+}
+var dbSchema = (envVar('DB_SCHEMA') || _dbSchemaDefault);
+
+
 var dbProtocol = (envVar('DB_PROTOCOL') || null);
 
 
@@ -88,7 +98,8 @@ var cfg = {
   db: {
     contactPoints: dbContactPoints,
     keyspace: dbKeyspace,
-    protocol: dbProtocol
+    protocol: dbProtocol,
+    schemaName: dbSchema
   },
 
   port : port,

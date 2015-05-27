@@ -2,18 +2,18 @@ var
   should = require('should'),
   bucketService = require('../../../server/services/BucketService'),
   async = require('async'),
-  helper = require('../../CassandraHelper')
+  datasource = require('../../../server/conf/datasource')
 ;
 
 describe('Bucket service integration tests', function () {
 
   before(function(done){
-    helper.truncateData().then(done);
+    datasource.truncateData().then(done);
   });
 
   after(function(done){
     done();
-    helper.truncateData().then(done);
+    datasource.truncateData().then(done);
   });
 
   describe('save tests', function () {
@@ -164,12 +164,12 @@ describe('Bucket service integration tests', function () {
         data.should.be.ok;
 
         bucketService.updateOne(opts.name, opts.username, {
-          date_created: (new Date())
+          username: 'adawd'
         },function(err1,data1){
           should(data1).not.be.ok;
           err1.should.be.ok;
           Object.keys(err1.errors).should.have.length(1);
-          err1.errors.should.containEql({error:'date_created is part of primary key and cannot be changed'});
+          err1.errors.should.containEql({error:'username is part of primary key and cannot be changed'});
           done();
         });
       });
@@ -197,12 +197,15 @@ describe('Bucket service integration tests', function () {
           is_public: true
         },function(err1,data1){
           should(err1).not.be.ok;
-          data1.should.be.ok;
 
-          data1.name.should.eql(opts.name);
-          data1.username.should.eql(opts.username);
-          data1.description.should.eql('new description');
-          data1.is_public.should.eql(true);
+          // update does not return updated entity
+          should(data1).not.be.ok;
+
+          //data1.should.be.ok;
+          //data1.name.should.eql(opts.name);
+          //data1.username.should.eql(opts.username);
+          //data1.description.should.eql('new description');
+          //data1.is_public.should.eql(true);
           done();
         });
       });

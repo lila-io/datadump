@@ -90,9 +90,6 @@ exports.updateOne = function(name, username, properties, cb){
 		throw new Error('Illegal arguments, must be: name, username, object, callback: ' + args);
 	}
 
-  delete properties.name;
-  delete properties.username;
-
   models.bucket().update(where,properties,function(err,res){
     if(err != null){
       return cb(err)

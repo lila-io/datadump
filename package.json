@@ -12,7 +12,7 @@
     "start": "node server.js",
     "lint": "./node_modules/.bin/jshint server.js server/*",
     "pretest": "rm -rf coverage && npm run-script lint",
-    "test": "./node_modules/.bin/istanbul -v -x=server.js -x=client/** -x=server/conf/** --preload-sources cover ./node_modules/.bin/_mocha -- --recursive -R spec -r should",
+    "test": "NODE_ENV=test ./node_modules/.bin/istanbul -v -x=server.js -x=client/** -x=server/conf/** --preload-sources cover ./node_modules/.bin/_mocha -- --recursive -R spec -r should",
     "posttest": "./node_modules/.bin/istanbul check-coverage"
   },
 

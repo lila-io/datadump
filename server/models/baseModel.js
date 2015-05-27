@@ -144,29 +144,33 @@ BaseModel.prototype.find = function(props, callback){
   var self = this;
 
   self.prepareSelectStatement(props, function(err,query){
-    datasource.getClient().execute(query, null, null, function(err, data){
-      if(err) {
-        return callback(err);
-      }
+    datasource.getClient().then( function(client){
 
-      if(!data || data.rowLength === 0){
-        return callback(null,null);
-      }
+      client.execute(query, null, null, function(err, data){
+        if(err) {
+          return callback(err);
+        }
 
-      var results = [];
+        if(!data || data.rowLength === 0){
+          return callback(null,null);
+        }
 
-      data.rows.forEach(function(dataRow,index,array){
+        var results = [];
 
-        var cols = dataRow.keys();
-        var o = {};
-        cols.forEach(function(colName,idx){
-          o[colName] = dataRow.get(colName);
+        data.rows.forEach(function(dataRow,index,array){
+
+          var cols = dataRow.keys();
+          var o = {};
+          cols.forEach(function(colName,idx){
+            o[colName] = dataRow.get(colName);
+          });
+
+          results.push(o);
         });
 
-        results.push(o);
+        callback(null,results);
       });
 
-      callback(null,results);
     });
   });
 };
@@ -184,12 +188,14 @@ BaseModel.prototype.save = function(callback){
   }
 
   self.prepareInsertStatement(self.props, function(err,statement){
-    datasource.getClient().execute(statement.query, statement.values, {prepare: true}, function(err){
-      if(err) {
-        callback(err);
-      } else {
-        callback(null,self.props);
-      }
+    datasource.getClient().then(function(client){
+      client.execute(statement.query, statement.values, {prepare: true}, function(err){
+        if(err) {
+          callback(err);
+        } else {
+          callback(null,self.props);
+        }
+      });
     });
   });
 };
@@ -206,12 +212,14 @@ BaseModel.prototype.update = function(where,props,callback){
     if(err) {
       return callback(err);
     }
-    datasource.getClient().execute(query, null, null, function(err){
-      if(err) {
-        return callback(err);
-      }
+    datasource.getClient().then(function(client){
+      client.execute(query, null, null, function(err) {
+        if (err) {
+          return callback(err);
+        }
 
-      callback();
+        callback();
+      });
     });
   });
 };

@@ -7,13 +7,12 @@ var path = require('path');
 var Q = require('q');
 
 /**
- * REFACTORING TO SUIT BOTH PRODUCTION AND TESTS
+ * Cassandra driver wrapper
+ * Initiates connection, stores client instance, updates schema
  *
- * @param overrides
+ * @param {*} overrides
  * @constructor
  */
-
-
 function Cassandra(overrides){
 
   if( ! this instanceof Cassandra ){
@@ -72,7 +71,7 @@ Cassandra.prototype._init = function(){
 
     self._client = new cassandra.Client( self._clientOptions );
     self._client.on('log', function(level, className, message, furtherInfo) {
-      console.log('log event: %s -- %s', level, message);
+      // console.log('log event: %s -- %s', level, message);
     });
 
     /** optionally connect to Cassandra
@@ -210,8 +209,35 @@ Cassandra.prototype._executeManyWithClient = function(queries, client){
   }, Q(function(){ return true; }));
 };
 
+/**
+ * Drop all data in keyspace
+ * @returns {promise}
+ */
+Cassandra.prototype.truncateData = function(){
+
+  var self = this;
+  var deferred = Q.defer();
+
+  self.getClient().then(function(client){
+
+    var queries = [
+      'TRUNCATE users',
+      'TRUNCATE user_tokens',
+      'TRUNCATE login_attempts',
+      'TRUNCATE buckets',
+      'TRUNCATE bucket_items'
+    ];
+
+    self._executeManyWithClient(queries,client).then(function(){
+      deferred.resolve();
+    }).done();
+  });
+
+  return deferred.promise;
+};
+
+/**
+ * export singleton
+ * @type {Cassandra}
+ */
 exports = module.exports = new Cassandra();
-
-exports.Cassandra = Cassandra;
-
-

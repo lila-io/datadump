@@ -72,8 +72,6 @@ UpdateQueryBuilder.prototype.build = function(){
     }
   });
 
-  console.log("query",query)
-
   return query.join(' ');
 };
 
