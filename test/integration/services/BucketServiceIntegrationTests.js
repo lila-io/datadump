@@ -40,9 +40,8 @@ describe('Bucket service integration tests', function () {
       bucketService.createOne({},function(err,data){
         should(data).not.be.ok;
         err.should.be.ok;
-        Object.keys(err.errors).should.have.length(2);
+        Object.keys(err.errors).should.have.length(1);
 
-        err.errors.should.containEql({error:'name is required'});
         err.errors.should.containEql({error:'username is required'});
         done();
       });
@@ -60,7 +59,7 @@ describe('Bucket service integration tests', function () {
       bucketService.createOne(opts,function(err,data){
         should(err).not.be.ok;
 
-        data.date_created.should.be.ok;
+        data.id.should.be.ok;
         data.name.should.eql(opts.name);
         data.username.should.eql(opts.username);
         data.is_public.should.eql(false);
@@ -136,7 +135,7 @@ describe('Bucket service integration tests', function () {
         should(err).not.be.ok;
         data.should.be.ok;
 
-        bucketService.updateOne(opts.name, opts.username, {
+        bucketService.updateOne(data.id, opts.username, {
           description: null,
           is_public: null
         },function(err1,data1){
@@ -192,7 +191,7 @@ describe('Bucket service integration tests', function () {
         should(err).not.be.ok;
         data.should.be.ok;
 
-        bucketService.updateOne(opts.name, opts.username, {
+        bucketService.updateOne(data.id, opts.username, {
           description: 'new description',
           is_public: true
         },function(err1,data1){
@@ -232,8 +231,7 @@ describe('Bucket service integration tests', function () {
 
     it('does not find item', function (done) {
 
-      var id = mongoose.Types.ObjectId();
-      bucketService.findOne(id,function(err,data){
+      bucketService.findOne('meeh',function(err,data){
         should(err).not.be.ok;
         should(data).not.be.ok;
         done();

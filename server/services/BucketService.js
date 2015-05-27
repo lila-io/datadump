@@ -40,22 +40,13 @@ exports.findOne = function(itemId, ownerId, cb){
 
 exports.createOne = function(properties, cb){
 
-	var props = {}, defaults = {
-    name: '',
-    description: '',
-    username: null,
-    date_created: new Date(),
-    is_public: false
-	};
   var bucket;
 
   if(!_.isObject(properties) || !_.isFunction(cb)){
     throw new Error('Illegal arguments, must be: object, callback: ' + Array.prototype.slice.call(arguments));
   }
 
-	_.extend(props, defaults, properties);
-
-  bucket = new models.bucket(props);
+  bucket = new models.bucket(properties);
 
   if(!bucket.validate()){
     return cb(bucket.errors());
@@ -79,15 +70,15 @@ exports.createOne = function(properties, cb){
 
 };
 
-exports.updateOne = function(name, username, properties, cb){
+exports.updateOne = function(id, username, properties, cb){
 
   var
     args = Array.prototype.slice.call(arguments),
-    where = {name:name, username:username}
+    where = {id:id, username:username}
     ;
 
-	if(name == null || username == null || !_.isObject(properties) || !_.isFunction(cb)){
-		throw new Error('Illegal arguments, must be: name, username, object, callback: ' + args);
+	if(id == null || username == null || !_.isObject(properties) || !_.isFunction(cb)){
+		throw new Error('Illegal arguments, must be: id, username, object, callback: ' + args);
 	}
 
   models.bucket().update(where,properties,function(err,res){

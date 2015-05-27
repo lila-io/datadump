@@ -8,6 +8,35 @@ var datasource = require('../conf/datasource');
 var UpdateQueryBuilder = require('./queryBuilder').UpdateQueryBuilder;
 
 
+//var Uuid = require('cassandra-driver').types.Uuid;
+//var id = Uuid.random();
+//client.execute('SELECT id FROM users', function (err, result) {
+//  assert.ifError(err);
+//  console.log(result.rows[0].id instanceof Uuid); // true
+//  console.log(result.rows[0].id.toString());      // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//});
+//
+//var id = Uuid.fromString(stringValue);
+//console.log(id instanceof Uuid);            // true
+//console.log(id.toString() === stringValue); // true
+
+
+//var TimeUuid = require('cassandra-driver').types.TimeUuid;
+//var id1 = TimeUuid.now();
+//var id2 = TimeUuid.fromDate(new Date());
+//client.execute('SELECT id, timeid FROM sensor', function (err, result) {
+//  assert.ifError(err);
+//  console.log(result.rows[0].timeid instanceof TimeUuid); // true
+//  console.log(result.rows[0].timeid instanceof Uuid); // true, it inherits from Uuid
+//  console.log(result.rows[0].timeid.toString());      // <- xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//  console.log(result.rows[0].timeid.getDate());       // <- Date stored in the identifier
+//});
+//
+//var ticks = 9123; // A number from 0 to 9999
+//var id = TimeUuid.fromDate(new Date(), ticks, node, clock);
+
+
+
 function BaseModel(options){
   events.EventEmitter.call(this);
   var opts = options || {};
@@ -48,6 +77,11 @@ BaseModel.prototype._getPropertyErrors = function(name,value,isUpdate){
   var self = this;
   var primary = self.getPrimaryFields();
   var errors = [];
+
+  if( typeof self.columns[name] === 'undefined'){
+    errors.push(self._createError((name + ' property is not recognized')));
+    return errors;
+  }
 
   var isColumnBoolean = self.columns[name].type === 'boolean';
   var isValueDefined = (typeof value !== 'undefined');
@@ -358,6 +392,9 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
         dataNew[fieldName] = hashed;
         continuePrepartion();
       });
+    } else if(self.columns[fieldName].type === 'timeuuid'){
+      dataNew[fieldName] = setData[fieldName];
+      continuePrepartion();
     } else {
       dataNew[fieldName] = setData[fieldName];
       continuePrepartion();

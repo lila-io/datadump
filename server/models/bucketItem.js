@@ -6,10 +6,10 @@ var
 var BucketItemSchema = new BaseModel({
   column_family: 'bucket_items',
   columns: {
-    time_created: {type: 'timeuuid'},
-    year_month: {type: 'int'},
-    bucket_name: {type: 'text'},
-    username: {type: 'text'},
+    id: {type: 'timeuuid', primary: true},
+    year_month: {type: 'int', primary: true},
+    bucket_id: {type: 'timeuuid', primary: true},
+    username: {type: 'text', primary: true},
     data: {type: 'map<text, text>'}
   }
 });

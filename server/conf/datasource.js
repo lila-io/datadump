@@ -4,6 +4,7 @@ var cassandra = require('cassandra-driver');
 var config = require('./config');
 var util = require('../lib/util');
 var path = require('path');
+var fs = require('fs');
 var Q = require('q');
 
 /**
@@ -26,7 +27,7 @@ function Cassandra(overrides){
    * If schema name is set then in test env it is gonna be updated
    * @type {null|*|test_schema}
    */
-  this.schemaName = overrides.schemaName || null;
+  this.schemaName = options.schemaName || null;
   this.schemaEncoding = 'utf8';
 
   console.log('Starting db connection to : ', options.contactPoints);
@@ -137,6 +138,8 @@ Cassandra.prototype._executeSchemaQueries = function(){
   var schemaFile;
   var cass;
 
+  console.log('Executing schema queries');
+
   if(self.schemaName){
 
     schemaFile = path.join( __dirname, '../models/', self.schemaName );
@@ -150,7 +153,7 @@ Cassandra.prototype._executeSchemaQueries = function(){
       if(err){
         throw new Error('Could not connect to Cassandra', err);
       }
-      console.log('[%d] Executing commands from', schemaFile);
+      console.log('Executing commands from', schemaFile);
 
       // parse contents
       var text = fs.readFileSync(schemaFile, {encoding: self.schemaEncoding});

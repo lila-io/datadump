@@ -1,6 +1,8 @@
 var config = require('../conf/config');
 var BaseModel = require('./baseModel');
 var util = require('util');
+var TimeUuid = require('cassandra-driver').types.TimeUuid;
+var extend = require('../lib/util').extend;
 
 function Bucket(props){
 
@@ -10,14 +12,22 @@ function Bucket(props){
   BaseModel.call(this, {
     column_family: 'buckets',
     columns: {
-      name: {type: 'text', primary: true},
-      description: {type: 'text'},
+      id: {type: 'timeuuid', primary: true},
       username: {type: 'text', primary: true},
-      date_created: {type: 'timestamp'},
+      name: {type: 'text'},
+      description: {type: 'text'},
       is_public: {type: 'boolean'}
     },
-    props: props
+    props: {
+      id: TimeUuid.now(),
+      name: '',
+      description: '',
+      username: null,
+      is_public: false
+    }
   });
+
+  extend(this.props, props);
 }
 util.inherits(Bucket, BaseModel);
 
