@@ -2,7 +2,8 @@ var
   should = require('should'),
   bucketService = require('../../../server/services/BucketService'),
   async = require('async'),
-  datasource = require('../../../server/conf/datasource')
+  datasource = require('../../../server/conf/datasource'),
+  TimeUuid = require('cassandra-driver').types.TimeUuid
 ;
 
 describe('Bucket service integration tests', function () {
@@ -229,9 +230,19 @@ describe('Bucket service integration tests', function () {
       done();
     });
 
-    it('does not find item', function (done) {
+    it('fails as item id is invalid', function (done) {
 
       bucketService.findOne('meeh',function(err,data){
+        should(err).be.ok;
+        should(data).not.be.ok;
+        done();
+      });
+
+    });
+
+    it('does not find item', function (done) {
+
+      bucketService.findOne( TimeUuid.now(), function(err,data){
         should(err).not.be.ok;
         should(data).not.be.ok;
         done();

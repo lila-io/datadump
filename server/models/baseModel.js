@@ -5,7 +5,7 @@ var util = require('util');
 var bcrypt = require('bcrypt');
 var SALT_WORK_FACTOR = 10;
 var datasource = require('../conf/datasource');
-var UpdateQueryBuilder = require('./queryBuilder').UpdateQueryBuilder;
+var QueryBuilder = require('./queryBuilder');
 
 
 //var Uuid = require('cassandra-driver').types.Uuid;
@@ -270,23 +270,18 @@ BaseModel.prototype.delete = function(){};
 BaseModel.prototype.prepareSelectStatement = function(data, cb){
 
   data = data || {};
-  var fields = Object.keys(data);
 
   if(!this.column_family){
     throw new Error('table is not defined');
   }
-  if(!fields){
+  if(typeof data !== 'object' || !Object.keys(data).length){
     throw new Error('data not provided');
   }
 
-  var query = "SELECT * FROM " + this.column_family + " WHERE ";
-
-  fields.forEach(function(fieldName,index,array){
-    query += (fieldName + " = " + "'" + data[fieldName]) + "'";
-    if(index < (array.length - 1)){
-      query += " AND ";
-    }
-  });
+  var query = QueryBuilder.SelectQueryBuilder()
+    .setColumnFamily(this.column_family)
+    .setMatches(data)
+    .build();
 
   cb(null,query);
 };
@@ -406,7 +401,7 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
     length -= 1;
     if(length > 0) return;
 
-    var query = UpdateQueryBuilder()
+    var query = QueryBuilder.UpdateQueryBuilder()
       .setColumnFamily(self.column_family)
       .setValues(dataNew)
       .setMatches(whereData)

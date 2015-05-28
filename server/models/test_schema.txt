@@ -41,10 +41,9 @@ CREATE TABLE IF NOT EXISTS test_datadump.buckets (
   description text,
   username text,
   is_public boolean,
-  PRIMARY KEY(username, id)
-) WITH CLUSTERING ORDER BY (id DESC);
-
-CREATE INDEX ON test_datadump.buckets (name);
+  PRIMARY KEY (username, id)
+);
+CREATE INDEX IF NOT EXISTS ON test_datadump.buckets (name);
 
 CREATE TABLE IF NOT EXISTS test_datadump.bucket_items (
   id timeuuid,

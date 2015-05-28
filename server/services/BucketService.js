@@ -6,35 +6,39 @@ var
   models = require('../models')
 ;
 
-exports.findOne = function(itemId, ownerId, cb){
+exports.findOne = function(itemId, username, cb){
 
   var
     args = Array.prototype.slice.call(arguments),
-    query
+    queryParams = {}
     ;
 
   if(args.length === 2) {
     cb = args[1];
-    ownerId = null;
+    username = null;
   }
 
   if(itemId == null || !_.isFunction(cb)){
-    throw new Error('Illegal arguments, must be: itemId, ownerId, callback: ' + args);
+    throw new Error('Illegal arguments, must be: itemId, username, callback: ' + args);
   }
 
-  if(ownerId == null){
-    query = mongoose.model(MODELNAME).findById(itemId);
+  if(username == null){
+    queryParams.id = itemId;
   } else {
-    query = mongoose.model(MODELNAME).findOne({_id:itemId, user:ownerId});
+    queryParams.id = itemId;
+    queryParams.username = username;
   }
 
-  query.exec(function(err,item){
-    if(err != null){
-      if(err.name === 'CastError')
-        return cb(null,null);
-      return cb(err);
+  models.bucket().find(queryParams, function(err, results){
+    if(err){
+      return cb(err)
     }
-    cb(null,item);
+
+    if(!results || results.length){
+      return callback(null,null);
+    }
+
+    callback(null, results[0]);
   });
 };
 
