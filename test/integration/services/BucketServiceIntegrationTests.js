@@ -9,11 +9,20 @@ var
 describe('Bucket service integration tests', function () {
 
   before(function(done){
-    datasource.truncateData().then(done);
+    datasource.truncateData().then(function(){
+      return done();
+    }).catch(function(e){
+      console.log("error",e);
+    });;
   });
 
   after(function(done){
-    datasource.truncateData().then(done);
+
+    datasource.truncateData().then(function(){
+      return done();
+    }).catch(function(e){
+      console.log("error",e);
+    });;
   });
 
   describe('save tests', function () {
@@ -343,10 +352,18 @@ describe('Bucket service integration tests', function () {
       done();
     });
 
-    it('fails to delete non existent item', function (done) {
+    it('fails to delete by invalid ID', function (done) {
 
-      var id = mongoose.Types.ObjectId();
-      bucketService.deleteOne(id,function(err,data){
+      bucketService.deleteOne('miaw', 'username', function(err,data){
+        err.should.eql('server error');
+        should(data).not.be.ok;
+        done();
+      });
+    });
+
+    it('fails to delete nonexistent item', function (done) {
+
+      bucketService.deleteOne(TimeUuid.now(), 'username', function(err,data){
         should(err).not.be.ok;
         should(data).not.be.ok;
         done();
@@ -355,76 +372,97 @@ describe('Bucket service integration tests', function () {
 
     it('fails to delete for wrong user', function (done) {
 
-      var userId = mongoose.Types.ObjectId();
-      var otherUserId = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: userId
+        name: 'nameUnique123456789',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
 
-        bucketService.deleteOne(data._id, otherUserId,function(err,deletedData){
-          should(err).not.be.ok;
-          should(deletedData).not.be.ok;
+        should(err).not.be.ok;
+        data.should.be.ok;
 
-          bucketService.findOne(data._id,function(err,item){
+        bucketService.findOne(data.id, function(err,data){
+          should(err).not.be.ok;
+          should(data).be.ok;
+
+          bucketService.deleteOne(data.id, 'unrecognized user', function(err,deletedData){
             should(err).not.be.ok;
-            should(item).be.ok;
-            done();
+            should(deletedData).not.be.ok;
+
+            bucketService.findOne(data.id,function(err,item){
+              should(err).not.be.ok;
+              should(item).be.ok;
+              done();
+            });
           });
         });
       });
     });
 
-    it('deletes an item', function (done) {
+    it('fails to delete with wrong id', function (done) {
 
-      var userId = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: userId
+        name: 'nameUnique123456789a',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
 
-        bucketService.deleteOne(data._id,function(err,deletedData){
-          should(err).not.be.ok;
-          should(deletedData).be.ok;
+        should(err).not.be.ok;
+        data.should.be.ok;
 
-          bucketService.findOne(deletedData._id,function(err,item){
+        bucketService.findOne(data.id, function(err,data){
+          should(err).not.be.ok;
+          should(data).be.ok;
+
+          bucketService.deleteOne(TimeUuid.now(), opts.username, function(err,deletedData){
             should(err).not.be.ok;
-            should(item).not.be.ok;
-            done();
+            should(deletedData).not.be.ok;
+
+            bucketService.findOne(data.id,function(err,item){
+              should(err).not.be.ok;
+              should(item).be.ok;
+              done();
+            });
           });
         });
       });
     });
 
-    it('deletes an item for user', function (done) {
+    it('succeeds to delete for user', function (done) {
 
-      var userId = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: userId
+        name: 'nameUnique123456789b',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
 
-        bucketService.deleteOne(data._id, userId, function(err,deletedData){
-          should(err).not.be.ok;
-          should(deletedData).be.ok;
+        should(err).not.be.ok;
+        data.should.be.ok;
 
-          bucketService.findOne(deletedData._id,function(err,item){
+        bucketService.findOne(data.id, function(err,data){
+          should(err).not.be.ok;
+          should(data).be.ok;
+
+          bucketService.deleteOne(data.id, opts.username, function(err,deletedData){
             should(err).not.be.ok;
-            should(item).not.be.ok;
-            done();
+            should(deletedData).not.be.ok;
+
+            bucketService.findOne(data.id,function(err,item){
+              should(err).not.be.ok;
+              should(item).not.be.ok;
+              done();
+            });
           });
         });
       });
     });
+
   });
 
   describe('list tests', function () {

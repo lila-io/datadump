@@ -62,6 +62,15 @@ BaseModel.prototype.getPrimaryFields = function(){
   return fields;
 }
 
+BaseModel.prototype._handleDbError = function(error,callback){
+
+  if(typeof error === 'string'){
+    callback(error);
+  } else {
+    callback('server error');
+  }
+};
+
 BaseModel.prototype._createError = function(errorString){
   return {error: errorString};
 };
@@ -184,7 +193,7 @@ BaseModel.prototype.find = function(props, callback){
 
       client.execute(query, null, null, function(err, data){
         if(err) {
-          return callback(err);
+          return self._handleDbError(err, callback);
         }
 
         if(data == null || data.rowLength === 0){
@@ -230,7 +239,7 @@ BaseModel.prototype.save = function(callback){
 
       client.execute(statement.query, statement.values, {prepare: true}, function(err){
         if(err) {
-          callback(err);
+          return self._handleDbError(err, callback);
         } else {
           callback(null,self.props);
         }
@@ -257,7 +266,7 @@ BaseModel.prototype.update = function(where,props,callback){
 
       client.execute(query, null, null, function(err) {
         if (err) {
-          return callback(err);
+          return self._handleDbError(err, callback);
         }
 
         callback();
@@ -266,8 +275,28 @@ BaseModel.prototype.update = function(where,props,callback){
   });
 };
 
-// TODO: implement deletes
-BaseModel.prototype.delete = function(){};
+BaseModel.prototype.delete = function(props, callback){
+
+  var self = this;
+
+  self.prepareDeleteStatement(props, function(err,query){
+    if(err) {
+      return callback(err);
+    }
+    datasource.getClient().then(function(client){
+
+      console.log("Query:", query);
+
+      client.execute(query, null, null, function(err){
+        if(err) {
+          return self._handleDbError(err, callback);
+        }
+
+        callback();
+      });
+    });
+  });
+};
 
 /**
  * Prepare statement for selecting data
@@ -287,6 +316,31 @@ BaseModel.prototype.prepareSelectStatement = function(data, cb){
   }
 
   var query = QueryBuilder.SelectQueryBuilder()
+    .setColumnFamily(this.column_family)
+    .setMatches(data)
+    .build();
+
+  cb(null,query);
+};
+
+/**
+ * Prepare statement for deleting data
+ * to be used by cassandra driver
+ * @param data
+ * @param cb
+ */
+BaseModel.prototype.prepareDeleteStatement = function(data, cb){
+
+  data = data || {};
+
+  if(!this.column_family){
+    throw new Error('table is not defined');
+  }
+  if(typeof data !== 'object' || !Object.keys(data).length){
+    throw new Error('data not provided');
+  }
+
+  var query = QueryBuilder.DeleteQueryBuilder()
     .setColumnFamily(this.column_family)
     .setMatches(data)
     .build();

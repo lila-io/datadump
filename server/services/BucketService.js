@@ -93,33 +93,27 @@ exports.updateOne = function(id, username, properties, cb){
   })
 };
 
-exports.deleteOne = function(id, ownerId, cb){
+/**
+ * Delete user bucket, here id and username is required
+ * as username is a partition key in DB
+ * @param id
+ * @param username
+ * @param cb
+ */
+exports.deleteOne = function(id, username, cb){
 
-  var
-    args = Array.prototype.slice.call(arguments),
-    query
-    ;
+  var args = Array.prototype.slice.call(arguments);
 
-  if(args.length === 2) {
-    cb = args[1];
-    ownerId = null;
+  if(id == null || username == null || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: id, username, callback: ' + args);
   }
 
-  if(id == null || !_.isFunction(cb)){
-    throw new Error('Illegal arguments, must be: id, (optional)ownerId, callback: ' + args);
-  }
-
-  if(ownerId == null){
-    query = mongoose.model(MODELNAME).findByIdAndRemove(id);
-  } else {
-    query = mongoose.model(MODELNAME).findOneAndRemove({_id:id, user:ownerId});
-  }
-
-  query.exec(function (err,deletedItem){
-    if(err != null){
-      return cb(err);
+  models.bucket().delete({username:username, id:id}, function(err, results){
+    if(err){
+      return cb(err)
     }
-    cb(null,deletedItem);
+
+    cb(null, results);
   });
 };
 

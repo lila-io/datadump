@@ -192,7 +192,11 @@ Cassandra.prototype._executeManyWithClient = function(queries, client){
     if(!query || !query.trim()) return;
 
     var fn = function(){
+
       var deferred = Q.defer();
+
+      console.log("executing query", query)
+
       client.execute( query, null, null, function(err, res){
         if(err){
           deferred.reject(err);
@@ -207,9 +211,16 @@ Cassandra.prototype._executeManyWithClient = function(queries, client){
 
   });
 
-  return tasks.reduce(function (soFar, f) {
-    return soFar.then(f);
-  }, Q(function(){ return true; }));
+
+  var result = Q(function(){
+    return true;
+  });
+
+  tasks.forEach(function (f) {
+    result = result.then(f);
+  });
+
+  return result;
 };
 
 /**
@@ -219,9 +230,8 @@ Cassandra.prototype._executeManyWithClient = function(queries, client){
 Cassandra.prototype.truncateData = function(){
 
   var self = this;
-  var deferred = Q.defer();
 
-  self.getClient().then(function(client){
+  return self.getClient().then(function(client){
 
     var queries = [
       'TRUNCATE users',
@@ -231,12 +241,8 @@ Cassandra.prototype.truncateData = function(){
       'TRUNCATE bucket_items'
     ];
 
-    self._executeManyWithClient(queries,client).then(function(){
-      deferred.resolve();
-    }).done();
+    return self._executeManyWithClient(queries,client);
   });
-
-  return deferred.promise;
 };
 
 /**
