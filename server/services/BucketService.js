@@ -35,10 +35,10 @@ exports.findOne = function(itemId, username, cb){
     }
 
     if(!results || results.length){
-      return callback(null,null);
+      return cb(null,null);
     }
 
-    callback(null, results[0]);
+    cb(null, results[0]);
   });
 };
 

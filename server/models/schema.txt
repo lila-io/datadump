@@ -45,10 +45,10 @@ CREATE TABLE IF NOT EXISTS buckets (
   description text,
   username text,
   is_public boolean,
-  PRIMARY KEY(id, username)
-) WITH CLUSTERING ORDER BY (id DESC);
-
-CREATE INDEX ON buckets (name);
+  PRIMARY KEY (username, id)
+);
+CREATE INDEX IF NOT EXISTS ON buckets (id);
+CREATE INDEX IF NOT EXISTS ON buckets (name);
 
 CREATE TABLE IF NOT EXISTS bucket_items (
   id timeuuid,
