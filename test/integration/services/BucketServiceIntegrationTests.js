@@ -13,8 +13,7 @@ describe('Bucket service integration tests', function () {
   });
 
   after(function(done){
-    done();
-    //datasource.truncateData().then(done);
+    datasource.truncateData().then(done);
   });
 
   describe('save tests', function () {
@@ -277,17 +276,18 @@ describe('Bucket service integration tests', function () {
 
     it('does not find an item as user does not match', function (done) {
 
-      var userId = mongoose.Types.ObjectId();
-      var otherId = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: userId
+        name: 'nameUnique1234567',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
 
-        bucketService.findOne(data._id,otherId,function(err,data){
+        should(err).not.be.ok;
+        data.should.be.ok;
+
+        bucketService.findOne(data.id,'unknownUser',function(err,data){
           should(err).not.be.ok;
           should(data).not.be.ok;
           done();
@@ -298,16 +298,18 @@ describe('Bucket service integration tests', function () {
 
     it('finds an item with matching user', function (done) {
 
-      var userId = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: userId
+        name: 'nameUnique12345678',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
 
-        bucketService.findOne(data._id,userId,function(err,data){
+        should(err).not.be.ok;
+        data.should.be.ok;
+
+        bucketService.findOne(data.id, opts.username, function(err,data){
           should(err).not.be.ok;
           should(data).be.ok;
           done();
