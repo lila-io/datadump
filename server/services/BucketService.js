@@ -34,7 +34,7 @@ exports.findOne = function(itemId, username, cb){
       return cb(err)
     }
 
-    if(!results || results.length){
+    if(!results || !results.length){
       return cb(null,null);
     }
 

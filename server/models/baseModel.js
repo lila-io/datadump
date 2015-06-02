@@ -180,12 +180,14 @@ BaseModel.prototype.find = function(props, callback){
   self.prepareSelectStatement(props, function(err,query){
     datasource.getClient().then( function(client){
 
+      console.log("Query:", query);
+
       client.execute(query, null, null, function(err, data){
         if(err) {
           return callback(err);
         }
 
-        if(!data || data.rowLength === 0){
+        if(data == null || data.rowLength === 0){
           return callback(null,null);
         }
 
@@ -223,6 +225,9 @@ BaseModel.prototype.save = function(callback){
 
   self.prepareInsertStatement(self.props, function(err,statement){
     datasource.getClient().then(function(client){
+
+      console.log("Query:", statement.query, "Values:", statement.values);
+
       client.execute(statement.query, statement.values, {prepare: true}, function(err){
         if(err) {
           callback(err);
@@ -247,6 +252,9 @@ BaseModel.prototype.update = function(where,props,callback){
       return callback(err);
     }
     datasource.getClient().then(function(client){
+
+      console.log("Query:", query);
+
       client.execute(query, null, null, function(err) {
         if (err) {
           return callback(err);

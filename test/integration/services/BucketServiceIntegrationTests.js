@@ -14,7 +14,7 @@ describe('Bucket service integration tests', function () {
 
   after(function(done){
     done();
-    datasource.truncateData().then(done);
+    //datasource.truncateData().then(done);
   });
 
   describe('save tests', function () {
@@ -252,23 +252,27 @@ describe('Bucket service integration tests', function () {
 
     it('finds item without owner', function (done) {
 
-      var userId = mongoose.Types.ObjectId();
       var opts = {
-        description: 'ha',
-        path: 'ho',
-        user: userId
+        name: 'nameUnique123456',
+        username: 'tallMan',
+        description: 'long story short'
       };
 
       bucketService.createOne(opts,function(err,data){
 
-        bucketService.findOne(data._id,function(err,data){
+        should(err).not.be.ok;
+        data.should.be.ok;
+
+        bucketService.findOne(data.id,function(err,data){
           should(err).not.be.ok;
           should(data).be.ok;
-          data.description.should.eql('ha');
+          data.name.should.eql('nameUnique123456');
+          data.username.should.eql('tallMan');
+          data.description.should.eql('long story short');
           done();
         });
-
       });
+
     });
 
     it('does not find an item as user does not match', function (done) {
