@@ -126,8 +126,7 @@ exports.list = function(searchQuery, options, cb){
     projection = null,
     sortOption = {},
     query = {},
-    positionalParams,
-    getItems, getCount, asyncFinally
+    positionalParams
     ;
 
   if(args.length === 2) {
@@ -159,31 +158,15 @@ exports.list = function(searchQuery, options, cb){
     query.user = searchQuery.user;
   }
 
-  getItems = function(done) {
-    mongoose.model(MODELNAME).find(query, projection, positionalParams, function(err,results){
-      if(err != null){
-        return done(err);
-      }
-      done(null,results);
-    });
-  };
-
-  getCount = function(done) {
-    mongoose.model(MODELNAME).count(searchQuery, function(err,result){
-      if(err != null){
-        return done(err);
-      }
-      done(null,result);
-    });
-  };
-
-  asyncFinally = function(err, results) {
-    if (err) {
-      return cb(err);
+  models.bucket().find(searchQuery, function(err, results, total){
+    if(err){
+      return cb(err)
     }
-    cb(null,results.items,results.total);
-  };
 
-  async.parallel({ items: getItems, total: getCount }, asyncFinally);
+    if(!results || !results.length){
+      return cb(null, [], 0);
+    }
 
+    cb(null, results, total);
+  });
 };

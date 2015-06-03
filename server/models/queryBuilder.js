@@ -1,33 +1,44 @@
 'use strict';
 
-var events = require('events');
 var util = require('util');
 
+var instanceMessage = 'You forgot to create an instance of this type';
 
-function DeleteQueryBuilder(){
-
-  if(! (this instanceof DeleteQueryBuilder)){
-    return new DeleteQueryBuilder();
-  }
-
+function QueryBuilder(){
   this.column_family;
-  this.matches = {};
-
+  this.matches = {
+    and$: {},
+    in$: {}
+  };
+  this.values = {};
   return this;
 }
 
-DeleteQueryBuilder.prototype.setColumnFamily = function(cf){
+QueryBuilder.prototype.constructor = QueryBuilder;
+
+QueryBuilder.prototype.instance = function(){
+  return new this.constructor();
+};
+
+QueryBuilder.prototype.setColumnFamily = function(cf){
   this.column_family = cf;
   return this;
 };
 
-DeleteQueryBuilder.prototype.setMatches = function(matches){
+QueryBuilder.prototype.setMatches = function(matches){
+  matches = matches || {};
+  this.matches.and$ = matches.and$ || {};
+  this.matches.in$ = matches.in$ || {};
   this.matches = matches;
   return this;
 };
 
-DeleteQueryBuilder.prototype.keyValueToQueryArr = function(key,value){
+QueryBuilder.prototype.setValues = function(values){
+  this.values = values;
+  return this;
+};
 
+QueryBuilder.prototype.keyValueToQueryArr = function(key,value){
   var query = [];
 
   query.push(key);
@@ -42,125 +53,61 @@ DeleteQueryBuilder.prototype.keyValueToQueryArr = function(key,value){
   return query;
 };
 
-DeleteQueryBuilder.prototype.build = function(){
+QueryBuilder.prototype._buildWhereQueryPart = function(){
 
+  var query = ['WHERE'];
   var self = this;
-  var query = ['DELETE','FROM',self.column_family,'WHERE'];
 
-  Object.keys(self.matches).forEach(function(fieldName,index,array){
+  // ANDed part
+  //////////////////////
 
-    query = query.concat( self.keyValueToQueryArr(fieldName, self.matches[fieldName]) );
+  if( self.matches && self.matches.and$ ){
+    Object.keys(self.matches.and$).forEach(function(fieldName,index,array){
+      query = query.concat( self.keyValueToQueryArr(fieldName, self.matches.and$[fieldName]) );
+      if(index < (array.length - 1)){
+        query.push('AND');
+      }
+    });
+  }
 
-    if(index < (array.length - 1)){
-      query.push('AND');
-    }
-  });
+  return query.join(' ');
+};
 
+QueryBuilder.prototype.build = function(){
+  throw new Error('Method build has to be overriden');
+};
+
+
+function DeleteQueryBuilder(props){
+  QueryBuilder.call(this, props);
+}
+util.inherits(DeleteQueryBuilder, QueryBuilder);
+
+DeleteQueryBuilder.prototype.build = function(){
+  var self = this;
+  var query = ['DELETE','FROM',self.column_family];
+  query.push( self._buildWhereQueryPart() );
   return query.join(' ');
 };
 
 
 function SelectQueryBuilder(){
-
-  if(! (this instanceof SelectQueryBuilder)){
-    return new SelectQueryBuilder();
-  }
-
-  this.column_family;
-  this.matches = {};
-
-  return this;
+  QueryBuilder.call(this);
 }
-
-SelectQueryBuilder.prototype.setColumnFamily = function(cf){
-  this.column_family = cf;
-  return this;
-};
-
-SelectQueryBuilder.prototype.setMatches = function(matches){
-  this.matches = matches;
-  return this;
-};
-
-SelectQueryBuilder.prototype.keyValueToQueryArr = function(key,value){
-
-  var query = [];
-
-  query.push(key);
-  query.push('=');
-
-  if(typeof value === 'string'){
-    query.push("'" + value + "'");
-  } else {
-    query.push(value);
-  }
-
-  return query;
-};
+util.inherits(SelectQueryBuilder, QueryBuilder);
 
 SelectQueryBuilder.prototype.build = function(){
-
   var self = this;
-  var query = ['SELECT','*','FROM',self.column_family,'WHERE'];
-
-  Object.keys(self.matches).forEach(function(fieldName,index,array){
-
-    query = query.concat( self.keyValueToQueryArr(fieldName, self.matches[fieldName]) );
-
-    if(index < (array.length - 1)){
-      query.push('AND');
-    }
-  });
-
+  var query = ['SELECT','*','FROM',self.column_family];
+  query.push( self._buildWhereQueryPart() );
   return query.join(' ');
 };
 
 
-
-
 function UpdateQueryBuilder(){
-
-  if(! (this instanceof UpdateQueryBuilder)){
-    return new UpdateQueryBuilder();
-  }
-
-  this.column_family;
-  this.values = {};
-  this.matches = {};
-
-  return this;
+  QueryBuilder.call(this);
 }
-
-UpdateQueryBuilder.prototype.setColumnFamily = function(cf){
-  this.column_family = cf;
-  return this;
-};
-
-UpdateQueryBuilder.prototype.setValues = function(values){
-  this.values = values;
-  return this;
-};
-
-UpdateQueryBuilder.prototype.setMatches = function(matches){
-  this.matches = matches;
-  return this;
-};
-
-UpdateQueryBuilder.prototype.keyValueToQueryArr = function(key,value){
-
-  var query = [];
-
-  query.push(key);
-  query.push('=');
-
-  if(typeof value === 'string'){
-    query.push("'" + value + "'");
-  } else {
-    query.push(value);
-  }
-
-  return query;
-};
+util.inherits(UpdateQueryBuilder, QueryBuilder);
 
 UpdateQueryBuilder.prototype.build = function(){
 
@@ -168,30 +115,40 @@ UpdateQueryBuilder.prototype.build = function(){
   var query = ['UPDATE',self.column_family,'SET'];
 
   Object.keys(self.values).forEach(function(fieldName,index,array){
-
     query = query.concat( self.keyValueToQueryArr(fieldName, self.values[fieldName]) );
-
     if(index < (array.length - 1)){
       query.push(',');
     }
   });
 
-  query.push('WHERE');
-
-  Object.keys(self.matches).forEach(function(fieldName,index,array){
-
-    query = query.concat( self.keyValueToQueryArr(fieldName, self.matches[fieldName]) );
-
-    if(index < (array.length - 1)){
-      query.push('AND');
-    }
-  });
+  query.push( self._buildWhereQueryPart() );
 
   return query.join(' ');
 };
 
 
-exports.UpdateQueryBuilder = UpdateQueryBuilder;
-exports.SelectQueryBuilder = SelectQueryBuilder;
-exports.DeleteQueryBuilder = DeleteQueryBuilder;
+exports.QueryBuilder = {
+  constructor: QueryBuilder,
+  instance: function(){
+    return new QueryBuilder();
+  }
+};
+exports.UpdateQueryBuilder = {
+  constructor: UpdateQueryBuilder,
+  instance: function(){
+    return new UpdateQueryBuilder();
+  }
+};
+exports.SelectQueryBuilder = {
+  constructor: SelectQueryBuilder,
+  instance: function(){
+    return new SelectQueryBuilder();
+  }
+};
+exports.DeleteQueryBuilder = {
+  constructor: DeleteQueryBuilder,
+  instance: function(){
+    return new DeleteQueryBuilder();
+  }
+};
 

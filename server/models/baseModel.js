@@ -213,7 +213,7 @@ BaseModel.prototype.find = function(props, callback){
           results.push(o);
         });
 
-        callback(null,results);
+        callback(null, results, data.rowLength);
       });
 
     });
@@ -315,7 +315,7 @@ BaseModel.prototype.prepareSelectStatement = function(data, cb){
     throw new Error('data not provided');
   }
 
-  var query = QueryBuilder.SelectQueryBuilder()
+  var query = QueryBuilder.SelectQueryBuilder.instance()
     .setColumnFamily(this.column_family)
     .setMatches(data)
     .build();
@@ -340,7 +340,7 @@ BaseModel.prototype.prepareDeleteStatement = function(data, cb){
     throw new Error('data not provided');
   }
 
-  var query = QueryBuilder.DeleteQueryBuilder()
+  var query = QueryBuilder.DeleteQueryBuilder.instance()
     .setColumnFamily(this.column_family)
     .setMatches(data)
     .build();
@@ -463,7 +463,7 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
     length -= 1;
     if(length > 0) return;
 
-    var query = QueryBuilder.UpdateQueryBuilder()
+    var query = QueryBuilder.UpdateQueryBuilder.instance()
       .setColumnFamily(self.column_family)
       .setValues(dataNew)
       .setMatches(whereData)
