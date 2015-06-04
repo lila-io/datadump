@@ -2,11 +2,9 @@
 
 var util = require('util');
 
-var instanceMessage = 'You forgot to create an instance of this type';
-
 function QueryBuilder(){
-  this.column_family;
-  this.matches = {
+  this.column_family = null;
+  this.match = {
     and$: {},
     in$: {}
   };
@@ -25,11 +23,10 @@ QueryBuilder.prototype.setColumnFamily = function(cf){
   return this;
 };
 
-QueryBuilder.prototype.setMatches = function(matches){
-  matches = matches || {};
-  this.matches.and$ = matches.and$ || {};
-  this.matches.in$ = matches.in$ || {};
-  this.matches = matches;
+QueryBuilder.prototype.setMatch = function(match){
+  match = match || {};
+  this.match.and$ = match.and$ || {};
+  this.match.in$ = match.in$ || {};
   return this;
 };
 
@@ -38,7 +35,7 @@ QueryBuilder.prototype.setValues = function(values){
   return this;
 };
 
-QueryBuilder.prototype.keyValueToQueryArr = function(key,value){
+QueryBuilder.prototype._keyValueToQueryArr = function(key,value){
   var query = [];
 
   query.push(key);
@@ -61,9 +58,9 @@ QueryBuilder.prototype._buildWhereQueryPart = function(){
   // ANDed part
   //////////////////////
 
-  if( self.matches && self.matches.and$ ){
-    Object.keys(self.matches.and$).forEach(function(fieldName,index,array){
-      query = query.concat( self.keyValueToQueryArr(fieldName, self.matches.and$[fieldName]) );
+  if( self.match && self.match.and$ ){
+    Object.keys(self.match.and$).forEach(function(fieldName,index,array){
+      query = query.concat( self._keyValueToQueryArr(fieldName, self.match.and$[fieldName]) );
       if(index < (array.length - 1)){
         query.push('AND');
       }
@@ -115,7 +112,7 @@ UpdateQueryBuilder.prototype.build = function(){
   var query = ['UPDATE',self.column_family,'SET'];
 
   Object.keys(self.values).forEach(function(fieldName,index,array){
-    query = query.concat( self.keyValueToQueryArr(fieldName, self.values[fieldName]) );
+    query = query.concat( self._keyValueToQueryArr(fieldName, self.values[fieldName]) );
     if(index < (array.length - 1)){
       query.push(',');
     }

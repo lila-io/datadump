@@ -317,7 +317,7 @@ BaseModel.prototype.prepareSelectStatement = function(data, cb){
 
   var query = QueryBuilder.SelectQueryBuilder.instance()
     .setColumnFamily(this.column_family)
-    .setMatches(data)
+    .setMatch(data)
     .build();
 
   cb(null,query);
@@ -342,7 +342,7 @@ BaseModel.prototype.prepareDeleteStatement = function(data, cb){
 
   var query = QueryBuilder.DeleteQueryBuilder.instance()
     .setColumnFamily(this.column_family)
-    .setMatches(data)
+    .setMatch(data)
     .build();
 
   cb(null,query);
@@ -466,7 +466,7 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
     var query = QueryBuilder.UpdateQueryBuilder.instance()
       .setColumnFamily(self.column_family)
       .setValues(dataNew)
-      .setMatches(whereData)
+      .setMatch(whereData)
       .build();
 
     cb(null, query);
