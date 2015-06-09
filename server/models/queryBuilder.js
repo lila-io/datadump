@@ -8,6 +8,7 @@ function QueryBuilder(){
     and$: {},
     in$: {}
   };
+  this.positional = {};
   this.values = {};
   return this;
 }
@@ -27,6 +28,20 @@ QueryBuilder.prototype.setMatch = function(match){
   match = match || {};
   this.match.and$ = match.and$ || {};
   this.match.in$ = match.in$ || {};
+  return this;
+};
+
+QueryBuilder.prototype.setPositional = function(pos){
+  pos = pos || {};
+  var order = 'DESC';
+  if(pos.order){
+    order = pos.order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+  }
+  if(pos.sort){
+    this.positional[pos.sort] = order;
+  }
+  if(pos.limit)
+    this.positional.limit = pos.limit || 10000;
   return this;
 };
 

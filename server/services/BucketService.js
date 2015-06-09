@@ -10,7 +10,7 @@ exports.findOne = function(itemId, username, cb){
 
   var
     args = Array.prototype.slice.call(arguments),
-    queryParams = {}
+    queryParams = { query: {and$: {}} }
     ;
 
   if(args.length === 2) {
@@ -23,10 +23,10 @@ exports.findOne = function(itemId, username, cb){
   }
 
   if(username == null){
-    queryParams.id = itemId;
+    queryParams.query.and$.id = itemId;
   } else {
-    queryParams.id = itemId;
-    queryParams.username = username;
+    queryParams.query.and$.id = itemId;
+    queryParams.query.and$.username = username;
   }
 
   models.bucket().find(queryParams, function(err, results){
@@ -117,56 +117,54 @@ exports.deleteOne = function(id, username, cb){
   });
 };
 
-exports.list = function(searchQuery, options, cb){
+exports.list = function(searchObj, positionalObj, cb){
 
   /* jshint maxcomplexity:15 */
 
   var
     args = Array.prototype.slice.call(arguments),
-    projection = null,
-    sortOption = {},
-    query = {},
-    positionalParams
-    ;
+    query = {
+      and$: {}
+    }
+  ;
 
   if(args.length === 2) {
     cb = args[1];
-    options = null;
+    positionalObj = null;
   }
 
-  if(!_.isObject(searchQuery) || !_.isFunction(cb)){
-    throw new Error('Illegal arguments, must be: searchQuery, options[optional], callback: ' + args);
+  if(!_.isObject(searchObj) || !_.isFunction(cb)){
+    throw new Error('Illegal arguments, must be: searchObj, positionalObj[optional], callback: ' + args);
   }
 
-  options = options || {};
-  options.sort = options.sort || 'dateCreated';
-  sortOption[options.sort] = options.order === 'asc' ? 1 : -1;
-  positionalParams = { skip: options.offset || 0, limit:options.max || 10, sort: sortOption };
+  searchObj = searchObj || {};
 
-  searchQuery = searchQuery || {};
-  if(searchQuery.query){
-    query.$or = [];
-    query.$or.push( { path: { $regex : '.*' + searchQuery.query + '.*', $options : 'i' } } )
-    query.$or.push( { description: { $regex : '.*' + searchQuery.query + '.*', $options : 'i' } } )
+  if(searchObj.username != null){
+    query.and$.username = searchObj.username;
   }
 
-  if(searchQuery.isPublic != null){
-    query.isPublic = searchQuery.isPublic;
+  if(searchObj.id != null){
+    query.and$.id = searchObj.id;
   }
 
-  if(searchQuery.user != null){
-    query.user = searchQuery.user;
+  if(searchObj.name != null){
+    query.and$.name = searchObj.name;
   }
 
-  models.bucket().find(searchQuery, function(err, results, total){
+  if(searchObj.is_public != null){
+    query.and$.is_public = searchObj.is_public;
+  }
+
+  models.bucket().find({
+    query: query,
+    positional: positionalObj
+  }, function(err, results, total){
     if(err){
       return cb(err)
     }
-
     if(!results || !results.length){
       return cb(null, [], 0);
     }
-
     cb(null, results, total);
   });
 };

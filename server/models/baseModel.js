@@ -317,7 +317,8 @@ BaseModel.prototype.prepareSelectStatement = function(data, cb){
 
   var query = QueryBuilder.SelectQueryBuilder.instance()
     .setColumnFamily(this.column_family)
-    .setMatch({and$:data})
+    .setMatch(data.query)
+    .setPositional(data.positional)
     .build();
 
   cb(null,query);

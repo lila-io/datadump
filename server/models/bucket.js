@@ -38,7 +38,7 @@ util.inherits(Bucket, BaseModel);
 Bucket.prototype.isUnique = function(cb){
 
   var self = this;
-  self.find({ username: self.props.username, name: self.props.name }, function(err, results){
+  self.find({ query: { and$: {username: self.props.username, name: self.props.name} } }, function(err, results){
     if(err){
       return cb(err)
     }
