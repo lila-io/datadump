@@ -10,16 +10,17 @@ describe('Bucket service integration tests', function () {
 
   before(function(done){
     datasource.truncateData().then(function(){
-      return done();
+      console.log("done called")
+      done();
     }).catch(function(e){
       console.log("error",e);
-    });;
+    });
   });
 
   after(function(done){
 
     datasource.truncateData().then(function(){
-      return done();
+      done();
     }).catch(function(e){
       console.log("error",e);
     });;
@@ -66,6 +67,7 @@ describe('Bucket service integration tests', function () {
       };
 
       bucketService.createOne(opts,function(err,data){
+
         should(err).not.be.ok;
 
         data.id.should.be.ok;
@@ -355,7 +357,7 @@ describe('Bucket service integration tests', function () {
     it('fails to delete by invalid ID', function (done) {
 
       bucketService.deleteOne('miaw', 'username', function(err,data){
-        err.should.eql('server error');
+        err.should.eql('datastore error');
         should(data).not.be.ok;
         done();
       });

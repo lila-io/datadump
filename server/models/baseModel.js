@@ -67,7 +67,7 @@ BaseModel.prototype._handleDbError = function(error,callback){
   if(typeof error === 'string'){
     callback(error);
   } else {
-    callback('server error');
+    callback('datastore error');
   }
 };
 
@@ -317,7 +317,7 @@ BaseModel.prototype.prepareSelectStatement = function(data, cb){
 
   var query = QueryBuilder.SelectQueryBuilder.instance()
     .setColumnFamily(this.column_family)
-    .setMatch(data)
+    .setMatch({and$:data})
     .build();
 
   cb(null,query);
@@ -342,7 +342,7 @@ BaseModel.prototype.prepareDeleteStatement = function(data, cb){
 
   var query = QueryBuilder.DeleteQueryBuilder.instance()
     .setColumnFamily(this.column_family)
-    .setMatch(data)
+    .setMatch({and$:data})
     .build();
 
   cb(null,query);
@@ -466,7 +466,7 @@ BaseModel.prototype.prepareUpdateStatement = function(whereData, setData, cb){
     var query = QueryBuilder.UpdateQueryBuilder.instance()
       .setColumnFamily(self.column_family)
       .setValues(dataNew)
-      .setMatch(whereData)
+      .setMatch({and$:whereData})
       .build();
 
     cb(null, query);

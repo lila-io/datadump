@@ -189,7 +189,9 @@ Cassandra.prototype._executeManyWithClient = function(queries, client){
 
   queries.forEach(function(query,idx){
 
-    if(!query || !query.trim()) return;
+    if(!query || !query.trim()){
+      return Q(function(){ return true; });
+    }
 
     var fn = function(){
 
@@ -230,17 +232,15 @@ Cassandra.prototype._executeManyWithClient = function(queries, client){
 Cassandra.prototype.truncateData = function(){
 
   var self = this;
+  var queries = [
+    'TRUNCATE users',
+    'TRUNCATE user_tokens',
+    'TRUNCATE login_attempts',
+    'TRUNCATE buckets',
+    'TRUNCATE bucket_items'
+  ];
 
   return self.getClient().then(function(client){
-
-    var queries = [
-      'TRUNCATE users',
-      'TRUNCATE user_tokens',
-      'TRUNCATE login_attempts',
-      'TRUNCATE buckets',
-      'TRUNCATE bucket_items'
-    ];
-
     return self._executeManyWithClient(queries,client);
   });
 };

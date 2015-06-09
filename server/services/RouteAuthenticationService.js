@@ -120,8 +120,6 @@ Authentication.prototype.require = function(ROLE){
         return;
       }
 
-      console.log('authenticating for role',ROLE)
-
       // use req._passport.instance as it is already
       // attached by authentication config
       req._passport.instance.authenticate('bearer', { session: false }, function(error, user){
