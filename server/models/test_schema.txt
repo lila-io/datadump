@@ -35,16 +35,33 @@ CREATE TABLE IF NOT EXISTS test_datadump.login_attempts (
   PRIMARY KEY ((ip, username), time)
 ) WITH CLUSTERING ORDER BY (time DESC) AND default_time_to_live = 1200;
 
+CREATE TYPE bucket (
+  name text,
+  description text
+);
+
 CREATE TABLE IF NOT EXISTS test_datadump.buckets (
   id timeuuid,
+  is_public boolean,
   name text,
   description text,
   username text,
+  PRIMARY KEY ((id), is_public, name)
+) WITH CLUSTERING ORDER BY (id DESC);
+
+CREATE TABLE IF NOT EXISTS test_datadump.username_buckets (
+  username text,
+  name text,
   is_public boolean,
-  PRIMARY KEY (username, id)
-);
-CREATE INDEX IF NOT EXISTS ON test_datadump.buckets (id);
-CREATE INDEX IF NOT EXISTS ON test_datadump.buckets (name);
+  bucket_id timeuuid,
+  description text,
+  PRIMARY KEY ((username), name, is_public)
+) WITH CLUSTERING ORDER BY (name ASC);
+
+
+
+
+
 
 CREATE TABLE IF NOT EXISTS test_datadump.bucket_items (
   id timeuuid,

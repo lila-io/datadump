@@ -138,7 +138,7 @@ Cassandra.prototype._executeSchemaQueries = function(){
   var schemaFile;
   var cass;
 
-  console.log('Executing schema queries');
+  w.log('Executing schema queries');
 
   if(self.schemaName){
 

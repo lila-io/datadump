@@ -1,0 +1,3 @@
+find bucket by id
+find all buckets by username
+find all buckets by public = true
